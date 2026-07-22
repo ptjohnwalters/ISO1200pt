@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<objectpool dimension="480" fix_bitmap_path="images\" sk_height="32" sk_width="60" std_bitmap_path="images\">
+  <!-- ???????????????????????????????????????????????????????????
+       WORKING SET - Root ECU Identity Object
+       ID: 0
+  ??????????????????????????????????????????????????????????? -->
+  <workingset active_mask="DataMask_Home" background_colour="black" id="0" name="WorkingSet_1200PT" selectable="yes"/>
+  <!-- ???????????????????????????????????????????????????????????
+       SOFT KEY MASKS
+  ??????????????????????????????????????????????????????????? -->
+  <!-- Main Navigation Soft Key Mask - ID 4000 -->
+  <softkeymask background_colour="black" id="4000" name="SoftKeyMask_Main" role="">
+    <include_object id="5000" name="SoftKey_Home" role=""/>
+    <include_object id="5001" name="SoftKey_Fold" role=""/>
+    <include_object id="5002" name="SoftKey_Unfold" role=""/>
+    <include_object id="5003" name="SoftKey_Plant" role=""/>
+    <include_object id="5004" name="SoftKey_FanVac" role=""/>
+  </softkeymask>
+  <!-- ???????????????????????????????????????????????????????????
+       SOFT KEYS - Navigation Buttons
+  ??????????????????????????????????????????????????????????? -->
+  <!-- Home Soft Key - ID 5000 -->
+  <key background_colour="black" id="5000" key_code="1" name="SoftKey_Home">
+    <include_object id="11020" name="Label_SKHome" role=""/>
+  </key>
+  <!-- Fold Soft Key - ID 5001 -->
+  <key background_colour="black" id="5001" key_code="1" name="SoftKey_Fold">
+    <include_object id="11021" name="Label_SKFold" role=""/>
+  </key>
+  <!-- Unfold Soft Key - ID 5002 -->
+  <key background_colour="black" id="5002" key_code="1" name="SoftKey_Unfold">
+    <include_object id="11022" name="Label_SKUnfold" role=""/>
+  </key>
+  <!-- Plant Soft Key - ID 5003 -->
+  <key background_colour="black" id="5003" key_code="1" name="SoftKey_Plant">
+    <include_object id="11023" name="Label_SKPlant" role=""/>
+  </key>
+  <!-- Fan/Vac Soft Key - ID 5004 -->
+  <key background_colour="black" id="5004" key_code="1" name="SoftKey_FanVac">
+    <include_object id="11024" name="Label_SKFanVac" role=""/>
+  </key>
+  <!-- ???????????????????????????????????????????????????????????
+       DATA MASK 1 - HOME SCREEN
+       ID: 1000
+  ??????????????????????????????????????????????????????????? -->
+  <datamask background_colour="black" id="1000" name="DataMask_Home" role="" soft_key_mask="SoftKeyMask_Main">
+    <include_object id="11000" name="Label_HomeTitle" role=""/>
+    <include_object id="6000" name="Btn_GoToFold" role=""/>
+    <include_object id="6001" name="Btn_GoToUnfold" role=""/>
+    <include_object id="6002" name="Btn_GoToPlant" role=""/>
+    <include_object id="6003" name="Btn_GoToFanVac" role=""/>
+  </datamask>
+  <!-- ???????????????????????????????????????????????????????????
+       DATA MASK 2 - FOLD SCREEN
+       ID: 1001
+  ??????????????????????????????????????????????????????????? -->
+  <datamask background_colour="black" id="1001" name="DataMask_Fold" role="" soft_key_mask="SoftKeyMask_Main">
+    <include_object id="11001" name="Label_FoldTitle" role=""/>
+    <include_object id="11005" name="Label_StepStatic" role=""/>
+    <include_object id="21000" name="Num_FoldStep" role=""/>
+    <include_object id="11006" name="Label_ActionStatic" role=""/>
+    <include_object id="22000" name="Str_FoldInstruction" role=""/>
+    <include_object id="6010" name="Btn_FoldNext" role=""/>
+    <include_object id="6011" name="Btn_FoldPrev" role=""/>
+    <include_object id="6012" name="Btn_FoldCancel" role=""/>
+  </datamask>
+  <!-- ???????????????????????????????????????????????????????????
+       DATA MASK 3 - UNFOLD SCREEN
+       ID: 1002
+  ??????????????????????????????????????????????????????????? -->
+  <datamask background_colour="black" id="1002" name="DataMask_Unfold" role="" soft_key_mask="SoftKeyMask_Main">
+    <include_object id="11002" name="Label_UnfoldTitle" role=""/>
+    <include_object id="11005" name="Label_StepStatic" role=""/>
+    <include_object id="21001" name="Num_UnfoldStep" role=""/>
+    <include_object id="11006" name="Label_ActionStatic" role=""/>
+    <include_object id="22001" name="Str_UnfoldInstruction" role=""/>
+    <include_object id="6020" name="Btn_UnfoldNext" role=""/>
+    <include_object id="6021" name="Btn_UnfoldPrev" role=""/>
+    <include_object id="6022" name="Btn_UnfoldCancel" role=""/>
+  </datamask>
+  <!-- ???????????????????????????????????????????????????????????
+       DATA MASK 4 - PLANT SCREEN
+       ID: 1003
+  ??????????????????????????????????????????????????????????? -->
+  <datamask background_colour="black" id="1003" name="DataMask_Plant" role="" soft_key_mask="SoftKeyMask_Main">
+    <include_object id="11003" name="Label_PlantTitle" role=""/>
+    <include_object id="11012" name="Label_ModeStatic" role=""/>
+    <include_object id="22002" name="Str_PlantStatus" role=""/>
+    <include_object id="11011" name="Label_SBinStatic" role=""/>
+    <include_object id="22004" name="Str_SBinStatus" role=""/>
+    <include_object id="6030" name="Btn_LimitedLift" role=""/>
+    <include_object id="6031" name="Btn_FullLift" role=""/>
+    <include_object id="6032" name="Btn_Lower" role=""/>
+  </datamask>
+  <!-- ???????????????????????????????????????????????????????????
+       DATA MASK 5 - FAN/VAC SCREEN
+       ID: 1004
+  ??????????????????????????????????????????????????????????? -->
+  <datamask background_colour="black" id="1004" name="DataMask_FanVac" role="" soft_key_mask="SoftKeyMask_Main">
+    <include_object id="11004" name="Label_FanVacTitle" role=""/>
+    <include_object id="11007" name="Label_FanRPMStatic" role=""/>
+    <include_object id="21003" name="Num_FanRPMActual" role=""/>
+    <include_object id="11008" name="Label_FanTgtStatic" role=""/>
+    <include_object id="21002" name="Num_FanRPMTarget" role=""/>
+    <include_object id="11009" name="Label_VacStatic" role=""/>
+    <include_object id="21005" name="Num_VacActual" role=""/>
+    <include_object id="11010" name="Label_VacTgtStatic" role=""/>
+    <include_object id="21004" name="Num_VacTarget" role=""/>
+    <include_object id="6040" name="Btn_FanSpeedUp" role=""/>
+    <include_object id="6041" name="Btn_FanSpeedDown" role=""/>
+    <include_object id="6050" name="Btn_VacPressureUp" role=""/>
+    <include_object id="6051" name="Btn_VacPressureDown" role=""/>
+  </datamask>
+  <!-- ???????????????????????????????????????????????????????????
+       BUTTONS - Home Screen
+  ??????????????????????????????????????????????????????????? -->
+  <button background_colour="green" border_colour="white" height="80" id="6000" key_code="0" latchable="no" name="Btn_GoToFold" width="200" x="140" y="100">
+    <include_object id="11030" name="Label_BtnFold" role=""/>
+  </button>
+  <button background_colour="green" border_colour="white" height="80" id="6001" key_code="0" latchable="no" name="Btn_GoToUnfold" width="200" x="140" y="200">
+    <include_object id="11031" name="Label_BtnUnfold" role=""/>
+  </button>
+  <button background_colour="green" border_colour="white" height="80" id="6002" key_code="0" latchable="no" name="Btn_GoToPlant" width="200" x="140" y="300">
+    <include_object id="11032" name="Label_BtnPlant" role=""/>
+  </button>
+  <button background_colour="green" border_colour="white" height="80" id="6003" key_code="0" latchable="no" name="Btn_GoToFanVac" width="200" x="140" y="390">
+    <include_object id="11033" name="Label_BtnFanVac" role=""/>
+  </button>
+  <!-- BUTTONS - Fold Screen -->
+  <button background_colour="green" border_colour="white" height="60" id="6010" key_code="0" latchable="no" name="Btn_FoldNext" width="130" x="10" y="380">
+    <include_object id="11034" name="Label_BtnNext" role=""/>
+  </button>
+  <button background_colour="yellow" border_colour="white" height="60" id="6011" key_code="0" latchable="no" name="Btn_FoldPrev" width="130" x="175" y="380">
+    <include_object id="11035" name="Label_BtnPrev" role=""/>
+  </button>
+  <button background_colour="red" border_colour="white" height="60" id="6012" key_code="0" latchable="no" name="Btn_FoldCancel" width="130" x="340" y="380">
+    <include_object id="11036" name="Label_BtnCancel" role=""/>
+  </button>
+  <!-- BUTTONS - Unfold Screen -->
+  <button background_colour="green" border_colour="white" height="60" id="6020" key_code="0" latchable="no" name="Btn_UnfoldNext" width="130" x="10" y="380">
+    <include_object id="11034" name="Label_BtnNext" role=""/>
+  </button>
+  <button background_colour="yellow" border_colour="white" height="60" id="6021" key_code="0" latchable="no" name="Btn_UnfoldPrev" width="130" x="175" y="380">
+    <include_object id="11035" name="Label_BtnPrev" role=""/>
+  </button>
+  <button background_colour="red" border_colour="white" height="60" id="6022" key_code="0" latchable="no" name="Btn_UnfoldCancel" width="130" x="340" y="380">
+    <include_object id="11036" name="Label_BtnCancel" role=""/>
+  </button>
+  <!-- BUTTONS - Plant Screen -->
+  <button background_colour="green" border_colour="white" height="70" id="6030" key_code="0" latchable="no" name="Btn_LimitedLift" width="140" x="10" y="370">
+    <include_object id="11037" name="Label_BtnLimitedLift" role=""/>
+  </button>
+  <button background_colour="green" border_colour="white" height="70" id="6031" key_code="0" latchable="no" name="Btn_FullLift" width="140" x="170" y="370">
+    <include_object id="11038" name="Label_BtnFullLift" role=""/>
+  </button>
+  <button background_colour="yellow" border_colour="white" height="70" id="6032" key_code="0" latchable="no" name="Btn_Lower" width="140" x="330" y="370">
+    <include_object id="11039" name="Label_BtnLower" role=""/>
+  </button>
+  <!-- BUTTONS - Fan/Vac Screen -->
+  <button background_colour="green" border_colour="white" height="50" id="6040" key_code="0" latchable="no" name="Btn_FanSpeedUp" width="100" x="10" y="200">
+    <include_object id="11040" name="Label_BtnPlus" role=""/>
+  </button>
+  <button background_colour="red" border_colour="white" height="50" id="6041" key_code="0" latchable="no" name="Btn_FanSpeedDown" width="100" x="120" y="200">
+    <include_object id="11041" name="Label_BtnMinus" role=""/>
+  </button>
+  <button background_colour="green" border_colour="white" height="50" id="6050" key_code="0" latchable="no" name="Btn_VacPressureUp" width="100" x="10" y="360">
+    <include_object id="11040" name="Label_BtnPlus" role=""/>
+  </button>
+  <button background_colour="red" border_colour="white" height="50" id="6051" key_code="0" latchable="no" name="Btn_VacPressureDown" width="100" x="120" y="360">
+    <include_object id="11041" name="Label_BtnMinus" role=""/>
+  </button>
+  <!-- ???????????????????????????????????????????????????????????
+       OUTPUT STRINGS - Static Labels
+  ??????????????????????????????????????????????????????????? -->
+  <!-- Screen Titles -->
+  <outputstring background_colour="black" font_attributes="FontLarge" height="40" horizontal_justification="centred" id="11000" language="" length="20" name="Label_HomeTitle" options="" value="1200PT CONTROL" vertical_justification="top" width="480" x="0" y="10"/>
+  <outputstring background_colour="black" font_attributes="FontLarge" height="40" horizontal_justification="centred" id="11001" language="" length="20" name="Label_FoldTitle" options="" value="FOLD SEQUENCE" vertical_justification="top" width="480" x="0" y="10"/>
+  <outputstring background_colour="black" font_attributes="FontLarge" height="40" horizontal_justification="centred" id="11002" language="" length="20" name="Label_UnfoldTitle" options="" value="UNFOLD SEQUENCE" vertical_justification="top" width="480" x="0" y="10"/>
+  <outputstring background_colour="black" font_attributes="FontLarge" height="40" horizontal_justification="centred" id="11003" language="" length="20" name="Label_PlantTitle" options="" value="PLANT MODE" vertical_justification="top" width="480" x="0" y="10"/>
+  <outputstring background_colour="black" font_attributes="FontLarge" height="40" horizontal_justification="centred" id="11004" language="" length="20" name="Label_FanVacTitle" options="" value="FAN / VAC CONTROL" vertical_justification="top" width="480" x="0" y="10"/>
+  <!-- Static Field Labels -->
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11005" language="" length="10" name="Label_StepStatic" options="" value="STEP:" vertical_justification="top" width="100" x="10" y="70"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11006" language="" length="10" name="Label_ActionStatic" options="" value="ACTION:" vertical_justification="top" width="150" x="10" y="150"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11007" language="" length="10" name="Label_FanRPMStatic" options="" value="FAN RPM:" vertical_justification="top" width="150" x="10" y="80"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11008" language="" length="10" name="Label_FanTgtStatic" options="" value="TARGET:" vertical_justification="top" width="150" x="10" y="160"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11009" language="" length="15" name="Label_VacStatic" options="" value="VAC PRESSURE:" vertical_justification="top" width="200" x="10" y="250"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11010" language="" length="10" name="Label_VacTgtStatic" options="" value="TARGET:" vertical_justification="top" width="150" x="10" y="320"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11011" language="" length="10" name="Label_SBinStatic" options="" value="S BIN:" vertical_justification="top" width="120" x="10" y="280"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11012" language="" length="10" name="Label_ModeStatic" options="" value="MODE:" vertical_justification="top" width="120" x="10" y="200"/>
+  <!-- Soft Key Labels -->
+  <outputstring background_colour="black" font_attributes="FontSmall" height="32" horizontal_justification="centred" id="11020" language="" length="6" name="Label_SKHome" options="" value="HOME" vertical_justification="middle" width="60" x="0" y="0"/>
+  <outputstring background_colour="black" font_attributes="FontSmall" height="32" horizontal_justification="centred" id="11021" language="" length="6" name="Label_SKFold" options="" value="FOLD" vertical_justification="middle" width="60" x="0" y="0"/>
+  <outputstring background_colour="black" font_attributes="FontSmall" height="32" horizontal_justification="centred" id="11022" language="" length="8" name="Label_SKUnfold" options="" value="UNFOLD" vertical_justification="middle" width="60" x="0" y="0"/>
+  <outputstring background_colour="black" font_attributes="FontSmall" height="32" horizontal_justification="centred" id="11023" language="" length="6" name="Label_SKPlant" options="" value="PLANT" vertical_justification="middle" width="60" x="0" y="0"/>
+  <outputstring background_colour="black" font_attributes="FontSmall" height="32" horizontal_justification="centred" id="11024" language="" length="8" name="Label_SKFanVac" options="" value="FAN/VAC" vertical_justification="middle" width="60" x="0" y="0"/>
+  <!-- Button Labels -->
+  <outputstring background_colour="green" font_attributes="FontLarge" height="80" horizontal_justification="centred" id="11030" language="" length="6" name="Label_BtnFold" options="" value="FOLD" vertical_justification="middle" width="200" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontLarge" height="80" horizontal_justification="centred" id="11031" language="" length="8" name="Label_BtnUnfold" options="" value="UNFOLD" vertical_justification="middle" width="200" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontLarge" height="80" horizontal_justification="centred" id="11032" language="" length="6" name="Label_BtnPlant" options="" value="PLANT" vertical_justification="middle" width="200" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontLarge" height="80" horizontal_justification="centred" id="11033" language="" length="8" name="Label_BtnFanVac" options="" value="FAN/VAC" vertical_justification="middle" width="200" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontMedium" height="60" horizontal_justification="centred" id="11034" language="" length="6" name="Label_BtnNext" options="" value="NEXT" vertical_justification="middle" width="130" x="0" y="0"/>
+  <outputstring background_colour="yellow" font_attributes="FontMedium" height="60" horizontal_justification="centred" id="11035" language="" length="6" name="Label_BtnPrev" options="" value="PREV" vertical_justification="middle" width="130" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="FontMedium" height="60" horizontal_justification="centred" id="11036" language="" length="8" name="Label_BtnCancel" options="" value="CANCEL" vertical_justification="middle" width="130" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall" height="70" horizontal_justification="centred" id="11037" language="" length="14" name="Label_BtnLimitedLift" options="" value="LIMITED LIFT" vertical_justification="middle" width="140" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall" height="70" horizontal_justification="centred" id="11038" language="" length="10" name="Label_BtnFullLift" options="" value="FULL LIFT" vertical_justification="middle" width="140" x="0" y="0"/>
+  <outputstring background_colour="yellow" font_attributes="FontSmall" height="70" horizontal_justification="centred" id="11039" language="" length="6" name="Label_BtnLower" options="" value="LOWER" vertical_justification="middle" width="140" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontLarge" height="50" horizontal_justification="centred" id="11040" language="" length="2" name="Label_BtnPlus" options="" value="+" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="FontLarge" height="50" horizontal_justification="centred" id="11041" language="" length="2" name="Label_BtnMinus" options="" value="-" vertical_justification="middle" width="100" x="0" y="0"/>
+  <!-- ???????????????????????????????????????????????????????????
+       VARIABLE STRINGS - Dynamic Text Updated at Runtime
+  ??????????????????????????????????????????????????????????? -->
+  <outputstring background_colour="black" font_attributes="FontMedium" height="40" horizontal_justification="left" id="22000" language="" length="35" name="Str_FoldInstruction" options="" value="SELECT FOLD OR UNFOLD" vertical_justification="top" width="460" x="10" y="190"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="40" horizontal_justification="left" id="22001" language="" length="35" name="Str_UnfoldInstruction" options="" value="SELECT FOLD OR UNFOLD" vertical_justification="top" width="460" x="10" y="190"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="22002" language="" length="14" name="Str_PlantStatus" options="" value="IDLE" vertical_justification="top" width="200" x="130" y="200"/>
+  <outputstring background_colour="black" font_attributes="FontMedium" height="30" horizontal_justification="left" id="22004" language="" length="6" name="Str_SBinStatus" options="" value="FULL" vertical_justification="top" width="120" x="130" y="280"/>
+  <!-- ???????????????????????????????????????????????????????????
+       VARIABLE NUMERICS - Live Values Updated at Runtime
+  ??????????????????????????????????????????????????????????? -->
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21000" max_value="1000" min_value="0" name="Num_FoldStep" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="80" x="120" y="70"/>
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21001" max_value="1000" min_value="0" name="Num_UnfoldStep" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="80" x="120" y="70"/>
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21002" max_value="1000" min_value="0" name="Num_FanRPMTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="1500" width="100" x="200" y="160"/>
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21003" max_value="1000" min_value="0" name="Num_FanRPMActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="100" x="200" y="80"/>
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21004" max_value="1000" min_value="0" name="Num_VacTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="45" width="100" x="200" y="320"/>
+  <outputnumber background_colour="black" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21005" max_value="1000" min_value="0" name="Num_VacActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="100" x="200" y="250"/>
+  <!-- ???????????????????????????????????????????????????????????
+       FONT ATTRIBUTES
+  ??????????????????????????????????????????????????????????? -->
+  <fontattributes font_colour="white" font_size="16x16" font_style="normal" font_type="latin1" id="23000" language="" name="FontSmall" role=""/>
+  <fontattributes font_colour="white" font_size="24x32" font_style="normal" font_type="latin1" id="23001" language="" name="FontMedium" role=""/>
+  <fontattributes font_colour="white" font_size="32x48" font_style="normal" font_type="latin1" id="23002" language="" name="FontLarge" role=""/>
+</objectpool>
