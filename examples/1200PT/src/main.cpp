@@ -1,5 +1,5 @@
 #include "isobus/hardware_integration/can_hardware_interface.hpp"
-#include "isobus/hardware_integration/twai_plugin.hpp"
+#include "isobus/hardware_integration/mcp2515_can_interface.hpp"
 #include "isobus/isobus/can_general_parameter_group_numbers.hpp"
 #include "isobus/isobus/can_network_manager.hpp"
 #include "isobus/isobus/can_partnered_control_function.hpp"
@@ -8,10 +8,13 @@
 #include "isobus/isobus/isobus_virtual_terminal_client_update_helper.hpp"
 #include "isobus/utility/iop_file_interface.hpp"
 
-#include "console_logger.cpp"
+#include "console_logger.hpp"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "esp_adc/adc_oneshot.h"
 
 #include "objectPoolObjects.h"
 #include "fold_sequence.h"
@@ -27,86 +30,106 @@ static std::shared_ptr<isobus::VirtualTerminalClient> virtualTerminalClient = nu
 static std::shared_ptr<isobus::VirtualTerminalClientUpdateHelper> virtualTerminalUpdateHelper = nullptr;
 
 // ─── ESP32 CAN PIN DEFINITIONS ───────────────────────────────────────────────
-// MCP2515 connects to ESP32 via SPI
-// TWAI (ESP32 built in CAN) used for ISOBUS
-#define CAN_TX_PIN      GPIO_NUM_4    // ESP32 GPIO4  - CAN TX to MCP2515
-#define CAN_RX_PIN      GPIO_NUM_5    // ESP32 GPIO5  - CAN RX from MCP2515
+#define MCP2515_CS_PIN      GPIO_NUM_15
+#define MCP2515_INT_PIN     GPIO_NUM_4
+#define MCP2515_SCK_PIN     GPIO_NUM_18
+#define MCP2515_MOSI_PIN    GPIO_NUM_23
+#define MCP2515_MISO_PIN    GPIO_NUM_19
 
-// ─── PID UPDATE TIMER ────────────────────────────────────────────────────────
-static TimerHandle_t pidUpdateTimer = nullptr;
+// ─── TIMERS ──────────────────────────────────────────────────────────────────
+static TimerHandle_t pidUpdateTimer     = nullptr;
+static TimerHandle_t displayUpdateTimer = nullptr;
 
-// ─── SCREEN TRACKING ─────────────────────────────────────────────────────────
-// Tracks which screen is currently active on InCommand
+// ─── ACTIVE SCREEN TRACKING ──────────────────────────────────────────────────
 enum class ActiveScreen
 {
-    HOME,
-    FOLD,
+    RUN,
     UNFOLD,
-    PLANT,
-    FAN_VAC
+    FOLD,
+    CAL
 };
-static ActiveScreen currentScreen = ActiveScreen::HOME;
+static ActiveScreen currentScreen = ActiveScreen::RUN;
 
 // ─── FORWARD DECLARATIONS ────────────────────────────────────────────────────
 void update_display_values();
 void handle_softkey_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
 void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
+void navigate_to_screen(ActiveScreen screen);
+
+// ─── NAVIGATE TO SCREEN ──────────────────────────────────────────────────────
+void navigate_to_screen(ActiveScreen screen)
+{
+    uint16_t maskID = DataMask_Run;
+
+    switch (screen)
+    {
+        case ActiveScreen::RUN:    maskID = DataMask_Run;    break;
+        case ActiveScreen::UNFOLD: maskID = DataMask_Unfold; break;
+        case ActiveScreen::FOLD:   maskID = DataMask_Fold;   break;
+        case ActiveScreen::CAL:    maskID = DataMask_Cal;    break;
+    }
+
+    virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
+        WorkingSet_1200PT, maskID);
+    currentScreen = screen;
+}
 
 // ─── PID TIMER CALLBACK ──────────────────────────────────────────────────────
-// Called every PID_UPDATE_INTERVAL milliseconds
-// Updates fan and vac PID loops and refreshes display values
 static void pid_timer_callback(TimerHandle_t xTimer)
 {
     fan_vac_update();
+}
+
+// ─── DISPLAY UPDATE TIMER CALLBACK ───────────────────────────────────────────
+static void display_timer_callback(TimerHandle_t xTimer)
+{
     update_display_values();
 }
 
 // ─── DISPLAY UPDATE FUNCTION ─────────────────────────────────────────────────
-// Pushes current sensor values and status to InCommand display
 void update_display_values()
 {
     if (virtualTerminalUpdateHelper == nullptr) return;
 
-    FanVacStatus fanVacStatus = fan_vac_get_status();
-    PlantStatus plantStatus   = plant_control_get_status();
+    FanVacStatus    fanVacStatus = fan_vac_get_status();
+    SequenceStatus  seqStatus    = fold_sequence_get_status();
 
-    // Update fan RPM actual display
+    // ── RUN Screen values ─────────────────────────────────────────────────────
+    // Fan RPM
     virtualTerminalUpdateHelper->set_numeric_value(
         VarNum_FanRPMActual,
-        fanVacStatus.fanRPMActual
-    );
-
-    // Update fan RPM target display
+        fanVacStatus.fan.actualValue);
     virtualTerminalUpdateHelper->set_numeric_value(
         VarNum_FanRPMTarget,
-        fanVacStatus.fanRPMTarget
-    );
+        fanVacStatus.fan.targetValue);
 
-    // Update vac pressure actual display
+    // Vac pressure
     virtualTerminalUpdateHelper->set_numeric_value(
         VarNum_VacActual,
-        fanVacStatus.vacPressureActual
-    );
-
-    // Update vac pressure target display
+        fanVacStatus.vac.actualValue);
     virtualTerminalUpdateHelper->set_numeric_value(
-        VarNum_VacTarget,
-        fanVacStatus.vacPressureTarget
-    );
+        VarNum_VacRateTarget,
+        fanVacStatus.vac.targetValue);
 
-    // Update fold step display if sequence active
-    if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE ||
-        fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
+    // Marker row
+    virtualTerminalUpdateHelper->set_numeric_value(
+        VarNum_MarkerRow,
+        fanVacStatus.markerRow);
+
+    // ── FOLD/UNFOLD Screen values ─────────────────────────────────────────────
+    if (seqStatus.state == SequenceState::FOLD_ACTIVE ||
+        seqStatus.state == SequenceState::UNFOLD_ACTIVE)
     {
         virtualTerminalUpdateHelper->set_numeric_value(
             VarNum_FoldStep,
-            fold_sequence_get_current_step()
-        );
+            seqStatus.currentStep + 1);
+        virtualTerminalUpdateHelper->set_numeric_value(
+            VarNum_UnfoldStep,
+            seqStatus.currentStep + 1);
     }
 }
 
 // ─── SOFTKEY EVENT HANDLER ───────────────────────────────────────────────────
-// Handles navigation soft keys on InCommand display
 void handle_softkey_event(
     const isobus::VirtualTerminalClient::VTKeyEvent &event)
 {
@@ -118,50 +141,24 @@ void handle_softkey_event(
 
     switch (event.objectID)
     {
-        case SoftKey_Home:
-            // Return to home screen
-            // Cancel any active sequence first
-            if (fold_sequence_get_state() != SequenceState::IDLE)
-            {
-                fold_sequence_cancel();
-            }
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Home
-            );
-            currentScreen = ActiveScreen::HOME;
-            break;
-
-        case SoftKey_Fold:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Fold
-            );
-            currentScreen = ActiveScreen::FOLD;
+        case SoftKey_Run:
+            navigate_to_screen(ActiveScreen::RUN);
             break;
 
         case SoftKey_Unfold:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Unfold
-            );
-            currentScreen = ActiveScreen::UNFOLD;
+            if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
+                fold_sequence_cancel();
+            navigate_to_screen(ActiveScreen::UNFOLD);
             break;
 
-        case SoftKey_Plant:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Plant
-            );
-            currentScreen = ActiveScreen::PLANT;
+        case SoftKey_Fold:
+            if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
+                fold_sequence_cancel();
+            navigate_to_screen(ActiveScreen::FOLD);
             break;
 
-        case SoftKey_FanVac:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_FanVac
-            );
-            currentScreen = ActiveScreen::FAN_VAC;
+        case SoftKey_Cal:
+            navigate_to_screen(ActiveScreen::CAL);
             break;
 
         default:
@@ -170,7 +167,6 @@ void handle_softkey_event(
 }
 
 // ─── BUTTON EVENT HANDLER ────────────────────────────────────────────────────
-// Handles all button presses on InCommand display
 void handle_button_event(
     const isobus::VirtualTerminalClient::VTKeyEvent &event)
 {
@@ -182,144 +178,126 @@ void handle_button_event(
 
     switch (event.objectID)
     {
-        // ── HOME SCREEN NAVIGATION ────────────────────────────────────────────
-        case Button_GoToFold:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Fold
-            );
-            currentScreen = ActiveScreen::FOLD;
+        // ── RUN SCREEN — Vacuum buttons ───────────────────────────────────────
+        case Button_VacOn:
+            fan_vac_vac_on();
             break;
 
-        case Button_GoToUnfold:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Unfold
-            );
-            currentScreen = ActiveScreen::UNFOLD;
+        case Button_VacOff:
+            fan_vac_vac_off();
             break;
 
-        case Button_GoToPlant:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Plant
-            );
-            currentScreen = ActiveScreen::PLANT;
+        case Button_VacRateUp:
+            fan_vac_vac_rate_up();
             break;
 
-        case Button_GoToFanVac:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_FanVac
-            );
-            currentScreen = ActiveScreen::FAN_VAC;
+        case Button_VacRateDown:
+            fan_vac_vac_rate_down();
             break;
 
-        // ── FOLD SEQUENCE BUTTONS ─────────────────────────────────────────────
-        case Button_FoldNext:
-        {
-            if (fold_sequence_get_state() == SequenceState::IDLE ||
-                fold_sequence_get_state() == SequenceState::COMPLETE)
-            {
-                // Start fold sequence
-                fold_sequence_start_fold();
-            }
-            else
-            {
-                // Advance to next step
-                bool complete = fold_sequence_next_step();
-                if (complete)
-                {
-                    // Sequence complete - show completion message
-                    virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                        WorkingSet_1200PT,
-                        DataMask_Home
-                    );
-                    currentScreen = ActiveScreen::HOME;
-                }
-            }
-        }
-        break;
-
-        case Button_FoldPrev:
-            fold_sequence_prev_step();
+        // ── RUN SCREEN — Bulk fill fan buttons ───────────────────────────────
+        case Button_FanOn:
+            fan_vac_fan_on();
             break;
 
-        case Button_FoldCancel:
-            fold_sequence_cancel();
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Home
-            );
-            currentScreen = ActiveScreen::HOME;
+        case Button_FanOff:
+            fan_vac_fan_off();
             break;
 
-        // ── UNFOLD SEQUENCE BUTTONS ───────────────────────────────────────────
+        case Button_FanRateUp:
+            fan_vac_fan_rate_up();
+            break;
+
+        case Button_FanRateDown:
+            fan_vac_fan_rate_down();
+            break;
+
+        // ── RUN SCREEN — Row marker buttons ──────────────────────────────────
+        case Button_MarkerPrev:
+            fan_vac_marker_prev();
+            break;
+
+        case Button_MarkerNext:
+            fan_vac_marker_next();
+            break;
+
+        case Button_MarkerAuto:
+            break;
+
+        // ── UNFOLD SEQUENCE buttons ───────────────────────────────────────────
         case Button_UnfoldNext:
         {
             if (fold_sequence_get_state() == SequenceState::IDLE ||
                 fold_sequence_get_state() == SequenceState::COMPLETE)
             {
-                // Start unfold sequence
                 fold_sequence_start_unfold();
             }
-            else
+            else if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
             {
-                // Advance to next step
                 bool complete = fold_sequence_next_step();
                 if (complete)
-                {
-                    virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                        WorkingSet_1200PT,
-                        DataMask_Home
-                    );
-                    currentScreen = ActiveScreen::HOME;
-                }
+                    navigate_to_screen(ActiveScreen::RUN);
             }
         }
         break;
 
         case Button_UnfoldPrev:
-            fold_sequence_prev_step();
+            if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
+                fold_sequence_prev_step();
             break;
 
         case Button_UnfoldCancel:
             fold_sequence_cancel();
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Home
-            );
-            currentScreen = ActiveScreen::HOME;
+            navigate_to_screen(ActiveScreen::RUN);
             break;
 
-        // ── PLANT MODE BUTTONS ────────────────────────────────────────────────
-        case Button_PlantLimitedLift:
-            plant_control_set_limited_lift();
+        // ── FOLD SEQUENCE buttons ─────────────────────────────────────────────
+        case Button_FoldNext:
+        {
+            if (fold_sequence_get_state() == SequenceState::IDLE ||
+                fold_sequence_get_state() == SequenceState::COMPLETE)
+            {
+                fold_sequence_start_fold();
+            }
+            else if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
+            {
+                bool complete = fold_sequence_next_step();
+                if (complete)
+                    navigate_to_screen(ActiveScreen::RUN);
+            }
+        }
+        break;
+
+        case Button_FoldPrev:
+            if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
+                fold_sequence_prev_step();
             break;
 
-        case Button_PlantFullLift:
-            plant_control_set_full_lift();
+        case Button_FoldCancel:
+            fold_sequence_cancel();
+            navigate_to_screen(ActiveScreen::RUN);
             break;
 
-        case Button_PlantLower:
-            plant_control_set_lowered();
+        // ── CAL SCREEN buttons ────────────────────────────────────────────────
+        case Button_CalLimitedBarSet:
+            cal_control_set_limited_bar();
             break;
 
-        // ── FAN VAC BUTTONS ───────────────────────────────────────────────────
-        case Button_FanSpeedUp:
-            fan_vac_fan_speed_up();
+        case Button_CalWingGullSet:
+            cal_control_set_wing_gull();
             break;
 
-        case Button_FanSpeedDown:
-            fan_vac_fan_speed_down();
+        case Button_CalHeadlandOn:
+            cal_control_headland_on();
             break;
 
-        case Button_VacPressureUp:
-            fan_vac_vac_pressure_up();
+        case Button_CalHeadlandOff:
+            cal_control_headland_off();
             break;
 
-        case Button_VacPressureDown:
-            fan_vac_vac_pressure_down();
+        case Button_AlarmAck:
+            cal_control_set_error(nullptr);
+            navigate_to_screen(ActiveScreen::RUN);
             break;
 
         default:
@@ -334,26 +312,20 @@ extern "C" const std::uint8_t object_pool_end[]   asm("_binary_object_pool_iop_e
 extern "C" void app_main()
 {
     // ── CAN HARDWARE SETUP ────────────────────────────────────────────────────
-    twai_general_config_t twaiConfig = TWAI_GENERAL_CONFIG_DEFAULT(
-        CAN_TX_PIN,
-        CAN_RX_PIN,
-        TWAI_MODE_NORMAL
-    );
-    twai_timing_config_t twaiTiming  = TWAI_TIMING_CONFIG_250KBITS();
-    twai_filter_config_t twaiFilter  = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-
+    // Initialize MCP2515 CAN interface with proper GPIO configuration
     std::shared_ptr<isobus::CANHardwarePlugin> canDriver =
-        std::make_shared<isobus::TWAIPlugin>(
-            &twaiConfig,
-            &twaiTiming,
-            &twaiFilter
-        );
+        std::make_shared<isobus::MCP2515CANInterface>(
+            MCP2515_CS_PIN,
+            MCP2515_INT_PIN,
+            MCP2515_SCK_PIN,
+            MCP2515_MOSI_PIN,
+            MCP2515_MISO_PIN,
+            isobus::MCP2515CANInterface::CANBaudRate::BaudRate250K);
 
     // ── ISOBUS STACK SETUP ────────────────────────────────────────────────────
     isobus::CANStackLogger::set_can_stack_logger_sink(&logger);
     isobus::CANStackLogger::set_log_level(
-        isobus::CANStackLogger::LoggingLevel::Info
-    );
+        isobus::CANStackLogger::LoggingLevel::Info);
     isobus::CANHardwareInterface::set_number_of_can_channels(1);
     isobus::CANHardwareInterface::assign_can_channel_frame_handler(0, canDriver);
 
@@ -363,25 +335,22 @@ extern "C" void app_main()
         return;
     }
 
-    // ── ECU IDENTITY SETUP ────────────────────────────────────────────────────
-    // Identifies this ECU on the ISOBUS network
-    // Function code 25 = Tillage - closest match for planter frame control
+    // ── ECU IDENTITY ─────────────────────────────────────────────────────────
     isobus::NAME ecuNAME(0);
     ecuNAME.set_arbitrary_address_capable(true);
-    ecuNAME.set_industry_group(2);              // Agriculture
-    ecuNAME.set_device_class(4);               // Seeding
-    ecuNAME.set_function_code(25);             // Tillage/Planter Frame
-    ecuNAME.set_identity_number(1200);         // 1200PT identifier
+    ecuNAME.set_industry_group(2);
+    ecuNAME.set_device_class(4);
+    ecuNAME.set_function_code(25);
+    ecuNAME.set_identity_number(1200);
     ecuNAME.set_ecu_instance(0);
     ecuNAME.set_function_instance(0);
     ecuNAME.set_device_class_instance(0);
-    ecuNAME.set_manufacturer_code(1407);       // Keep from example
+    ecuNAME.set_manufacturer_code(1407);
 
     // ── VIRTUAL TERMINAL SETUP ────────────────────────────────────────────────
     const isobus::NAMEFilter filterVT(
         isobus::NAME::NAMEParameters::FunctionCode,
-        static_cast<std::uint8_t>(isobus::NAME::Function::VirtualTerminal)
-    );
+        static_cast<std::uint8_t>(isobus::NAME::Function::VirtualTerminal));
     const std::vector<isobus::NAMEFilter> vtFilters = { filterVT };
 
     auto internalECU = isobus::CANNetworkManager::CANNetwork
@@ -390,69 +359,94 @@ extern "C" void app_main()
                            .create_partnered_control_function(0, vtFilters);
 
     virtualTerminalClient = std::make_shared<isobus::VirtualTerminalClient>(
-        partnerVT,
-        internalECU
-    );
+        partnerVT, internalECU);
     virtualTerminalClient->set_object_pool(
         0,
         object_pool_start,
         (object_pool_end - object_pool_start),
-        "1200"   // Pool designator - change this if you update the pool
-    );
+        "1200");
     virtualTerminalClient->get_vt_soft_key_event_dispatcher()
                           .add_listener(handle_softkey_event);
     virtualTerminalClient->get_vt_button_event_dispatcher()
                           .add_listener(handle_button_event);
     virtualTerminalClient->initialize(true);
 
+    // ── DISPLAY HELPER SETUP ──────────────────────────────────────────────────
     virtualTerminalUpdateHelper =
         std::make_shared<isobus::VirtualTerminalClientUpdateHelper>(
-            virtualTerminalClient
-        );
+            virtualTerminalClient);
 
-    // Track all numeric values we will update at runtime
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FoldStep,    0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_UnfoldStep,  0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMTarget,  FAN_RPM_DEFAULT);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMActual,  0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacTarget,     VAC_PRESSURE_DEFAULT);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacActual,     0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_FanRPMActual,  0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_FanRPMTarget,  FAN_RPM_DEFAULT);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_VacActual,     0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_VacRateTarget, VAC_PRESSURE_DEFAULT);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_FoldStep,      1);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_UnfoldStep,    1);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(
+        VarNum_MarkerRow,     MARKER_ROW_DEFAULT);
     virtualTerminalUpdateHelper->initialize();
 
     // ── MODULE INITIALIZATION ─────────────────────────────────────────────────
-    fold_sequence_init();   // Initialize I2C, MCP23017s, all solenoids off
-    plant_control_init();   // Initialize plant mode, all solenoids off
-    fan_vac_init();         // Initialize PWM, RPM sensor, ADC, PID controllers
-    fan_vac_start();        // Start fan and vac control loops
+    fold_sequence_init();
+    cal_control_init();
+    fan_vac_init();
 
-    // ── PID UPDATE TIMER ──────────────────────────────────────────────────────
-    // Fires every PID_UPDATE_INTERVAL ms to update fan and vac control
+    // ── TIMERS ────────────────────────────────────────────────────────────────
     pidUpdateTimer = xTimerCreate(
         "PIDTimer",
         pdMS_TO_TICKS(PID_UPDATE_INTERVAL),
-        pdTRUE,         // Auto reload
+        pdTRUE,
         nullptr,
-        pid_timer_callback
-    );
+        pid_timer_callback);
     if (pidUpdateTimer != nullptr)
-    {
         xTimerStart(pidUpdateTimer, 0);
-    }
+
+    displayUpdateTimer = xTimerCreate(
+        "DisplayTimer",
+        pdMS_TO_TICKS(250),
+        pdTRUE,
+        nullptr,
+        display_timer_callback);
+    if (displayUpdateTimer != nullptr)
+        xTimerStart(displayUpdateTimer, 0);
 
     // ── MAIN LOOP ─────────────────────────────────────────────────────────────
-    // ISOBUS stack runs in background threads
-    // S bin sensor polled here in main loop
     while (true)
     {
-        // Read S bin sensor and update plant control
-        bool sBinEmpty = gpio_get_level((gpio_num_t)PIN_SBIN_SENSOR) == 0;
-        plant_control_update_sbin(sBinEmpty);
+        // Poll S bin sensor
+        int sBinRaw = gpio_get_level((gpio_num_t)PIN_SBIN_SENSOR);
+        bool sBinEmpty = (sBinRaw == 0);
+        fan_vac_update_sbin(sBinEmpty);
 
-        // Small delay - ISOBUS stack handles its own timing
+        // Check for faults
+        FanVacStatus fanVacStatus = fan_vac_get_status();
+        if (fanVacStatus.fan.isFault &&
+            currentScreen != ActiveScreen::CAL)
+        {
+            cal_control_set_error("BULK FILL FAN FAULT");
+            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
+                WorkingSet_1200PT, DataMask_Alarm);
+        }
+        else if (fanVacStatus.vac.isFault &&
+                 currentScreen != ActiveScreen::CAL)
+        {
+            cal_control_set_error("VACUUM FAULT");
+            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
+                WorkingSet_1200PT, DataMask_Alarm);
+        }
+
+        if (fanVacStatus.sBinEmpty)
+            cal_control_set_error("S BIN EMPTY");
+
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // ── CLEANUP (never reached in normal operation) ───────────────────────────
     virtualTerminalClient->terminate();
     isobus::CANHardwareInterface::stop();
 }
