@@ -1,6 +1,7 @@
 #include "plant_control.h"
 #include "fold_sequence.h"
-#include <Wire.h>
+#include "driver/i2c.h"
+#include "freertos/FreeRTOS.h"
 
 // ─── MCP23017 ADDRESSES ───────────────────────────────────────────────────────
 // Same I2C bus as fold_sequence.cpp
@@ -9,6 +10,7 @@
 #define MCP23017_2_ADDR     0x21
 #define MCP_GPIOA           0x12
 #define MCP_GPIOB           0x13
+#define I2C_PORT            I2C_NUM_0
 
 // ─── PLANT MODE SOLENOID STATES ───────────────────────────────────────────────
 // Columns = solenoids 1-18 (index 0 = solenoid 1)
@@ -39,10 +41,14 @@ static PlantStatus currentStatus = {
 // Write a byte to MCP23017 register
 static void mcp23017_write_plant(uint8_t address, uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(address);
-    Wire.write(reg);
-    Wire.write(value);
-    Wire.endTransmission();
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg, true);
+    i2c_master_write_byte(cmd, value, true);
+    i2c_master_stop(cmd);
+    i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(100));
+    i2c_cmd_link_delete(cmd);
 }
 
 // Apply solenoid state array to MCP23017 outputs

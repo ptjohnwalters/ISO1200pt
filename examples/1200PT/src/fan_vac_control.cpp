@@ -1,9 +1,10 @@
 #include "fan_vac_control.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 #include "esp_adc/adc_oneshot.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include <algorithm>
 
 // ─── PWM CHANNEL CONFIGURATION ───────────────────────────────────────────────
 // ESP32 LEDC peripheral used for PWM generation
@@ -15,11 +16,11 @@
 
 // ─── ADC CONFIGURATION ───────────────────────────────────────────────────────
 #define VAC_ADC_CHANNEL     ADC_CHANNEL_7   // GPIO35 = ADC1 channel 7
-#define ADC_ATTEN           ADC_ATTEN_DB_11  // 0-3.9V input range
-#define ADC_WIDTH           ADC_WIDTH_BIT_12 // 12 bit resolution 0-4095
+#define ADC_ATTEN           ADC_ATTEN_DB_12  // 0-3.9V input range
+#define ADC_WIDTH           ADC_BITWIDTH_12  // 12 bit resolution 0-4095
 
 // ─── RPM SENSOR VARIABLES ────────────────────────────────────────────────────
-static volatile uint32_t fanPulseCount = 0;
+static uint32_t fanPulseCount = 0;
 static uint32_t lastRPMCalculationTime = 0;
 static uint16_t calculatedFanRPM = 0;
 
@@ -65,57 +66,53 @@ static adc_oneshot_unit_handle_t adcHandle = nullptr;
 // Fan RPM pulse counter interrupt handler
 static void IRAM_ATTR fan_rpm_isr(void* arg)
 {
-    fanPulseCount++;
+    __atomic_fetch_add(&fanPulseCount, 1, __ATOMIC_RELAXED);
 }
 
 // Initialize PWM output channels using ESP32 LEDC peripheral
 static void init_pwm_channels()
 {
     // Configure PWM timer
-    ledc_timer_config_t timerConfig = {
-        .speed_mode         = PWM_MODE,
-        .duty_resolution    = LEDC_TIMER_8_BIT,
-        .timer_num          = PWM_TIMER,
-        .freq_hz            = PWM_FREQUENCY,
-        .clk_cfg            = LEDC_AUTO_CLK
-    };
+    ledc_timer_config_t timerConfig = {};
+    timerConfig.speed_mode      = PWM_MODE;
+    timerConfig.duty_resolution = LEDC_TIMER_8_BIT;
+    timerConfig.timer_num       = PWM_TIMER;
+    timerConfig.freq_hz         = PWM_FREQUENCY;
+    timerConfig.clk_cfg         = LEDC_AUTO_CLK;
     ledc_timer_config(&timerConfig);
 
     // Configure fan PWM channel
-    ledc_channel_config_t fanChannel = {
-        .gpio_num           = PIN_FAN_PWM,
-        .speed_mode         = PWM_MODE,
-        .channel            = FAN_PWM_CHANNEL,
-        .intr_type          = LEDC_INTR_DISABLE,
-        .timer_sel          = PWM_TIMER,
-        .duty               = 0,
-        .hpoint             = 0
-    };
+    ledc_channel_config_t fanChannel = {};
+    fanChannel.gpio_num   = PIN_FAN_PWM;
+    fanChannel.speed_mode = PWM_MODE;
+    fanChannel.channel    = FAN_PWM_CHANNEL;
+    fanChannel.intr_type  = LEDC_INTR_DISABLE;
+    fanChannel.timer_sel  = PWM_TIMER;
+    fanChannel.duty       = 0;
+    fanChannel.hpoint     = 0;
     ledc_channel_config(&fanChannel);
 
     // Configure vac PWM channel
-    ledc_channel_config_t vacChannel = {
-        .gpio_num           = PIN_VAC_PWM,
-        .speed_mode         = PWM_MODE,
-        .channel            = VAC_PWM_CHANNEL,
-        .intr_type          = LEDC_INTR_DISABLE,
-        .timer_sel          = PWM_TIMER,
-        .duty               = 0,
-        .hpoint             = 0
-    };
+    ledc_channel_config_t vacChannel = {};
+    vacChannel.gpio_num   = PIN_VAC_PWM;
+    vacChannel.speed_mode = PWM_MODE;
+    vacChannel.channel    = VAC_PWM_CHANNEL;
+    vacChannel.intr_type  = LEDC_INTR_DISABLE;
+    vacChannel.timer_sel  = PWM_TIMER;
+    vacChannel.duty       = 0;
+    vacChannel.hpoint     = 0;
     ledc_channel_config(&vacChannel);
 }
 
 // Initialize fan RPM sensor interrupt
 static void init_rpm_sensor()
 {
-    gpio_config_t gpioConfig = {
-        .pin_bit_mask   = (1ULL << PIN_FAN_RPM_SENSOR),
-        .mode           = GPIO_MODE_INPUT,
-        .pull_up_en     = GPIO_PULLUP_ENABLE,
-        .pull_down_en   = GPIO_PULLDOWN_DISABLE,
-        .intr_type      = GPIO_INTR_POSEDGE
-    };
+    gpio_config_t gpioConfig = {};
+    gpioConfig.pin_bit_mask = (1ULL << PIN_FAN_RPM_SENSOR);
+    gpioConfig.mode         = GPIO_MODE_INPUT;
+    gpioConfig.pull_up_en   = GPIO_PULLUP_ENABLE;
+    gpioConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    gpioConfig.intr_type    = GPIO_INTR_POSEDGE;
     gpio_config(&gpioConfig);
     gpio_install_isr_service(0);
     gpio_isr_handler_add(
@@ -128,16 +125,14 @@ static void init_rpm_sensor()
 // Initialize vac pressure ADC
 static void init_vac_adc()
 {
-    adc_oneshot_unit_init_cfg_t initConfig = {
-        .unit_id = ADC_UNIT_1,
-        .ulp_mode = ADC_ULP_MODE_DISABLE,
-    };
+    adc_oneshot_unit_init_cfg_t initConfig = {};
+    initConfig.unit_id = ADC_UNIT_1;
+    initConfig.ulp_mode = ADC_ULP_MODE_DISABLE;
     adc_oneshot_new_unit(&initConfig, &adcHandle);
 
-    adc_oneshot_chan_cfg_t chanConfig = {
-        .atten = ADC_ATTEN,
-        .bitwidth = ADC_WIDTH,
-    };
+    adc_oneshot_chan_cfg_t chanConfig = {};
+    chanConfig.atten    = ADC_ATTEN;
+    chanConfig.bitwidth = ADC_WIDTH;
     adc_oneshot_config_channel(adcHandle, VAC_ADC_CHANNEL, &chanConfig);
 }
 
@@ -285,8 +280,7 @@ uint16_t fan_vac_read_rpm()
     {
         // Calculate RPM from pulse count
         // RPM = (pulses / pulses_per_rev) / (elapsed_ms / 60000)
-        uint32_t pulses = fanPulseCount;
-        fanPulseCount = 0;
+        uint32_t pulses = __atomic_exchange_n(&fanPulseCount, 0, __ATOMIC_RELAXED);
         lastRPMCalculationTime = now;
 
         calculatedFanRPM = (uint16_t)(
