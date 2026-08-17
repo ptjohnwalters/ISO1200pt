@@ -1,8 +1,7 @@
 #include "fan_vac_control.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
+#include "esp_adc/adc_oneshot.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -15,7 +14,7 @@
 #define PWM_MODE            LEDC_HIGH_SPEED_MODE
 
 // ─── ADC CONFIGURATION ───────────────────────────────────────────────────────
-#define VAC_ADC_CHANNEL     ADC1_CHANNEL_7   // GPIO35 = ADC1 channel 7
+#define VAC_ADC_CHANNEL     ADC_CHANNEL_7   // GPIO35 = ADC1 channel 7
 #define ADC_ATTEN           ADC_ATTEN_DB_11  // 0-3.9V input range
 #define ADC_WIDTH           ADC_WIDTH_BIT_12 // 12 bit resolution 0-4095
 
@@ -37,7 +36,7 @@ static FanVacStatus currentStatus = {
     FanVacState::IDLE       // state
 };
 
-// ─── PID CONTROLLERS ─────────────────────────────────────────────────────────
+// ─── PID CONTROLLERS ───────────────────────────────────────────────────────────
 static PIDController fanPID = {
     FAN_PID_KP,     // kp
     FAN_PID_KI,     // ki
@@ -58,8 +57,8 @@ static PIDController vacPID = {
     PWM_MAX_DUTY    // outputMax
 };
 
-// ─── ADC CALIBRATION ─────────────────────────────────────────────────────────
-static esp_adc_cal_characteristics_t adcChars;
+// ─── ADC CALIBRATION ───────────────────────────────────────────────────────────
+static adc_oneshot_unit_handle_t adcHandle = nullptr;
 
 // ─── PRIVATE HELPER FUNCTIONS ────────────────────────────────────────────────
 
@@ -129,15 +128,17 @@ static void init_rpm_sensor()
 // Initialize vac pressure ADC
 static void init_vac_adc()
 {
-    adc1_config_width(ADC_WIDTH);
-    adc1_config_channel_atten(VAC_ADC_CHANNEL, ADC_ATTEN);
-    esp_adc_cal_characterize(
-        ADC_UNIT_1,
-        ADC_ATTEN,
-        ADC_WIDTH,
-        1100,
-        &adcChars
-    );
+    adc_oneshot_unit_init_cfg_t initConfig = {
+        .unit_id = ADC_UNIT_1,
+        .ulp_mode = ADC_ULP_MODE_DISABLE,
+    };
+    adc_oneshot_new_unit(&initConfig, &adcHandle);
+
+    adc_oneshot_chan_cfg_t chanConfig = {
+        .atten = ADC_ATTEN,
+        .bitwidth = ADC_WIDTH,
+    };
+    adc_oneshot_config_channel(adcHandle, VAC_ADC_CHANNEL, &chanConfig);
 }
 
 // Set fan PWM duty cycle
@@ -156,7 +157,7 @@ static void set_vac_pwm(uint8_t duty)
     currentStatus.vacPWMDuty = duty;
 }
 
-// ─── PID COMPUTATION ─────────────────────────────────────────────────────────
+// ─── PID COMPUTATION ───────────────────────────────────────────────────────────
 float pid_compute(PIDController &pid, float setpoint, float measured)
 {
     float error = setpoint - measured;
@@ -188,7 +189,7 @@ void pid_reset(PIDController &pid)
     pid.lastError = 0.0f;
 }
 
-// ─── PUBLIC FUNCTIONS ─────────────────────────────────────────────────────────
+// ─── PUBLIC FUNCTIONS ───────────────────────────────────────────────────────────
 
 void fan_vac_init()
 {
@@ -302,15 +303,13 @@ uint16_t fan_vac_read_rpm()
 uint16_t fan_vac_read_pressure()
 {
     // Read raw ADC value
-    uint32_t rawADC = adc1_get_raw(VAC_ADC_CHANNEL);
+    int rawADC = 0;
+    adc_oneshot_read(adcHandle, VAC_ADC_CHANNEL, &rawADC);
 
-    // Convert to millivolts using calibration
-    uint32_t millivolts = esp_adc_cal_raw_to_voltage(rawADC, &adcChars);
-
-    // Scale millivolts to pressure units
-    // 0mV = VAC_PRESSURE_MIN, 3900mV = VAC_PRESSURE_MAX
+    // Scale ADC value (0-4095) to pressure range
+    // 0 = VAC_PRESSURE_MIN, 4095 = VAC_PRESSURE_MAX
     uint16_t pressure = (uint16_t)(
-        ((float)millivolts / 3900.0f) *
+        ((float)rawADC / 4095.0f) *
         (VAC_PRESSURE_MAX - VAC_PRESSURE_MIN) +
         VAC_PRESSURE_MIN
     );
