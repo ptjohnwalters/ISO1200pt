@@ -1,5 +1,5 @@
 #include "isobus/hardware_integration/can_hardware_interface.hpp"
-#include "isobus/hardware_integration/mcp2515_can_interface.hpp"
+#include "isobus/hardware_integration/twai_plugin.hpp"
 #include "isobus/isobus/can_general_parameter_group_numbers.hpp"
 #include "isobus/isobus/can_network_manager.hpp"
 #include "isobus/isobus/can_partnered_control_function.hpp"
@@ -12,6 +12,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
 #include "objectPoolObjects.h"
 #include "fold_sequence.h"
@@ -19,6 +21,7 @@
 #include "fan_vac_control.h"
 
 #include <functional>
+#include <iostream>
 #include <memory>
 
 // ─── ISOBUS CLIENT INSTANCES ─────────────────────────────────────────────────
@@ -26,13 +29,12 @@ static std::shared_ptr<isobus::VirtualTerminalClient> virtualTerminalClient = nu
 static std::shared_ptr<isobus::VirtualTerminalClientUpdateHelper> virtualTerminalUpdateHelper = nullptr;
 
 // ─── ESP32 CAN PIN DEFINITIONS ───────────────────────────────────────────────
-#define MCP2515_CS_PIN      GPIO_NUM_15
-#define MCP2515_INT_PIN     GPIO_NUM_4
-#define MCP2515_SCK_PIN     GPIO_NUM_18
-#define MCP2515_MOSI_PIN    GPIO_NUM_23
-#define MCP2515_MISO_PIN    GPIO_NUM_19
+// MCP2515 connects to ESP32 via SPI
+// TWAI (ESP32 built in CAN) used for ISOBUS
+#define CAN_TX_PIN      GPIO_NUM_4    // ESP32 GPIO4  - CAN TX to MCP2515
+#define CAN_RX_PIN      GPIO_NUM_5    // ESP32 GPIO5  - CAN RX from MCP2515
 
-// ─── PID UPDATE TIMER ────────────────────────────────────────────────────────
+// ─── PID UPDATE TIMER ───────────────────────────────────────────────────────
 static TimerHandle_t pidUpdateTimer = nullptr;
 
 // ─── SCREEN TRACKING ────────────────────────────────────────────────────────
@@ -334,15 +336,20 @@ extern "C" const std::uint8_t object_pool_end[]   asm("_binary_object_pool_iop_e
 extern "C" void app_main()
 {
     // ── CAN HARDWARE SETUP ────────────────────────────────────────────────────
-    // Initialize MCP2515 CAN interface with proper GPIO configuration
+    twai_general_config_t twaiConfig = TWAI_GENERAL_CONFIG_DEFAULT(
+        CAN_TX_PIN,
+        CAN_RX_PIN,
+        TWAI_MODE_NORMAL
+    );
+    twai_timing_config_t twaiTiming  = TWAI_TIMING_CONFIG_250KBITS();
+    twai_filter_config_t twaiFilter  = TWAI_FILTER_CONFIG_ACCEPT_ALL();
+
     std::shared_ptr<isobus::CANHardwarePlugin> canDriver =
-        std::make_shared<isobus::MCP2515CANInterface>(
-            MCP2515_CS_PIN,
-            MCP2515_INT_PIN,
-            MCP2515_SCK_PIN,
-            MCP2515_MOSI_PIN,
-            MCP2515_MISO_PIN,
-            isobus::MCP2515CANInterface::CANBaudRate::BaudRate250K);
+        std::make_shared<isobus::TWAIPlugin>(
+            &twaiConfig,
+            &twaiTiming,
+            &twaiFilter
+        );
 
     // ── ISOBUS STACK SETUP ────────────────────────────────────────────────────
     isobus::CANStackLogger::set_can_stack_logger_sink(&logger);
