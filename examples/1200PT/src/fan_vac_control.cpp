@@ -4,6 +4,7 @@
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 #include "driver/adc.h"
+#include "esp_adc_cal.h"
 #include <algorithm>
 
 // ─── PWM CHANNEL CONFIGURATION ───────────────────────────────────────────────
@@ -17,7 +18,7 @@
 // ─── ADC CONFIGURATION ───────────────────────────────────────────────────────
 #define VAC_ADC_CHANNEL     ADC1_CHANNEL_7   // GPIO35 = ADC1 channel 7
 #define ADC_ATTEN           ADC_ATTEN_DB_11  // 0-3.9V input range
-#define ADC_WIDTH           ADC_WIDTH_12BIT  // 12 bit resolution 0-4095
+#define ADC_WIDTH           ADC_WIDTH_BIT_12 // 12 bit resolution 0-4095
 
 // ─── RPM SENSOR VARIABLES ────────────────────────────────────────────────────
 static uint32_t fanPulseCount = 0;
