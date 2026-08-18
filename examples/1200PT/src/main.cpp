@@ -8,7 +8,7 @@
 #include "isobus/isobus/isobus_virtual_terminal_client_update_helper.hpp"
 #include "isobus/utility/iop_file_interface.hpp"
 
-#include "console_logger.cpp"
+#include "console_logger.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
@@ -37,7 +37,7 @@ static std::shared_ptr<isobus::VirtualTerminalClientUpdateHelper> virtualTermina
 // ─── PID UPDATE TIMER ───────────────────────────────────────────────────────
 static TimerHandle_t pidUpdateTimer = nullptr;
 
-// ─── SCREEN TRACKING ────────────────────────────────────────────────────────
+// ─── SCREEN TRACKING ───────────────────────────────────────────────────────────
 // Tracks which screen is currently active on InCommand
 enum class ActiveScreen
 {
@@ -70,7 +70,6 @@ void update_display_values()
     if (virtualTerminalUpdateHelper == nullptr) return;
 
     FanVacStatus fanVacStatus = fan_vac_get_status();
-    PlantStatus plantStatus   = plant_control_get_status();
 
     // Update fan RPM actual display
     virtualTerminalUpdateHelper->set_numeric_value(
