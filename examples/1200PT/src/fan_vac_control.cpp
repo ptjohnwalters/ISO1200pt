@@ -3,7 +3,7 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
-#include "esp_adc/adc_oneshot.h"
+#include "driver/adc.h"
 #include <algorithm>
 
 // ─── PWM CHANNEL CONFIGURATION ───────────────────────────────────────────────
@@ -15,9 +15,9 @@
 #define PWM_MODE            LEDC_HIGH_SPEED_MODE
 
 // ─── ADC CONFIGURATION ───────────────────────────────────────────────────────
-#define VAC_ADC_CHANNEL     ADC_CHANNEL_7   // GPIO35 = ADC1 channel 7
-#define ADC_ATTEN           ADC_ATTEN_DB_12  // 0-3.9V input range
-#define ADC_WIDTH           ADC_BITWIDTH_12  // 12 bit resolution 0-4095
+#define VAC_ADC_CHANNEL     ADC1_CHANNEL_7   // GPIO35 = ADC1 channel 7
+#define ADC_ATTEN           ADC_ATTEN_DB_11  // 0-3.9V input range
+#define ADC_WIDTH           ADC_WIDTH_12BIT  // 12 bit resolution 0-4095
 
 // ─── RPM SENSOR VARIABLES ────────────────────────────────────────────────────
 static uint32_t fanPulseCount = 0;
@@ -59,14 +59,14 @@ static PIDController vacPID = {
 };
 
 // ─── ADC CALIBRATION ───────────────────────────────────────────────────────────
-static adc_oneshot_unit_handle_t adcHandle = nullptr;
+static esp_adc_cal_characteristics_t adcChars;
 
 // ─── PRIVATE HELPER FUNCTIONS ────────────────────────────────────────────────
 
 // Fan RPM pulse counter interrupt handler
 static void IRAM_ATTR fan_rpm_isr(void* arg)
 {
-    __atomic_fetch_add(&fanPulseCount, 1, __ATOMIC_RELAXED);
+    fanPulseCount++;
 }
 
 // Initialize PWM output channels using ESP32 LEDC peripheral
@@ -125,15 +125,9 @@ static void init_rpm_sensor()
 // Initialize vac pressure ADC
 static void init_vac_adc()
 {
-    adc_oneshot_unit_init_cfg_t initConfig = {};
-    initConfig.unit_id = ADC_UNIT_1;
-    initConfig.ulp_mode = ADC_ULP_MODE_DISABLE;
-    adc_oneshot_new_unit(&initConfig, &adcHandle);
-
-    adc_oneshot_chan_cfg_t chanConfig = {};
-    chanConfig.atten    = ADC_ATTEN;
-    chanConfig.bitwidth = ADC_WIDTH;
-    adc_oneshot_config_channel(adcHandle, VAC_ADC_CHANNEL, &chanConfig);
+    adc1_config_width(ADC_WIDTH);
+    adc1_config_channel_atten(VAC_ADC_CHANNEL, ADC_ATTEN);
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN, ADC_WIDTH, 1100, &adcChars);
 }
 
 // Set fan PWM duty cycle
@@ -280,7 +274,8 @@ uint16_t fan_vac_read_rpm()
     {
         // Calculate RPM from pulse count
         // RPM = (pulses / pulses_per_rev) / (elapsed_ms / 60000)
-        uint32_t pulses = __atomic_exchange_n(&fanPulseCount, 0, __ATOMIC_RELAXED);
+        uint32_t pulses = fanPulseCount;
+        fanPulseCount = 0;
         lastRPMCalculationTime = now;
 
         calculatedFanRPM = (uint16_t)(
@@ -297,13 +292,14 @@ uint16_t fan_vac_read_rpm()
 uint16_t fan_vac_read_pressure()
 {
     // Read raw ADC value
-    int rawADC = 0;
-    adc_oneshot_read(adcHandle, VAC_ADC_CHANNEL, &rawADC);
+    uint32_t rawADC = adc1_get_raw(VAC_ADC_CHANNEL);
 
-    // Scale ADC value (0-4095) to pressure range
-    // 0 = VAC_PRESSURE_MIN, 4095 = VAC_PRESSURE_MAX
+    // Convert to millivolts
+    uint32_t millivolts = esp_adc_cal_raw_to_voltage(rawADC, &adcChars);
+
+    // Scale millivolts to pressure units (0mV = min, 3900mV = max)
     uint16_t pressure = (uint16_t)(
-        ((float)rawADC / 4095.0f) *
+        ((float)millivolts / 3900.0f) *
         (VAC_PRESSURE_MAX - VAC_PRESSURE_MIN) +
         VAC_PRESSURE_MIN
     );
