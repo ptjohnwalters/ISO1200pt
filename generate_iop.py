@@ -1,440 +1,532 @@
 #!/usr/bin/env python3
 """
 generate_iop.py
-Converts PoolEdit XML object pool to binary .iop format
-For Case IH 1200PT Custom ECU Project
+Converts PoolEdit XML object pool to binary .iop format.
 """
 
-import xml.etree.ElementTree as ET
+import os
 import struct
 import sys
-import os
+import xml.etree.ElementTree as ET
 
-# ─── ISOBUS VT Object Type IDs ───────────────────────────────────────────────
+# ISOBUS VT Object Type IDs used by the repository VT parser.
 OBJECT_TYPES = {
-    'workingset':       0,
-    'datamask':         1,
-    'alarmmask':        2,
-    'container':        3,
-    'softkeymask':      4,
-    'key':              5,
-    'button':           6,
-    'inputboolean':     7,
-    'inputstring':      8,
-    'inputnumber':      9,
-    'inputlist':        10,
-    'outputstring':     11,
-    'outputnumber':     12,
-    'outputlist':       13,
-    'outputline':       14,
-    'outputrectangle':  15,
-    'outputellipse':    16,
-    'outputpolygon':    17,
-    'outputmeter':      18,
-    'outputlinearbargraph': 19,
-    'outputarchedbargraph': 20,
-    'picturegraphic':   21,
-    'numbervar':        22,
-    'stringvar':        23,
-    'fontattributes':   24,
-    'lineattributes':   25,
-    'fillattributes':   26,
-    'inputattributes':  27,
-    'objectpointer':    28,
-    'macro':            29,
-    'auxiliaryfunction': 30,
-    'auxiliaryinput':   31,
+    'workingset': 0,
+    'datamask': 1,
+    'alarmmask': 2,
+    'container': 3,
+    'softkeymask': 4,
+    'key': 5,
+    'button': 6,
+    'inputboolean': 7,
+    'inputstring': 8,
+    'inputnumber': 9,
+    'inputlist': 10,
+    'outputstring': 11,
+    'outputnumber': 12,
+    'outputline': 13,
+    'outputrectangle': 14,
+    'outputellipse': 15,
+    'outputpolygon': 16,
+    'outputmeter': 17,
+    'outputlinearbargraph': 18,
+    'outputarchedbargraph': 19,
+    'picturegraphic': 20,
+    'numbervar': 21,
+    'stringvar': 22,
+    'fontattributes': 23,
+    'lineattributes': 24,
+    'fillattributes': 25,
+    'inputattributes': 26,
+    'objectpointer': 27,
+    'macro': 28,
+    'auxiliaryfunction': 29,
+    'auxiliaryinput': 30,
 }
 
-# ─── COLOUR MAP ──────────────────────────────────────────────────────────────
+SUPPORTED_TAGS = {
+    'workingset',
+    'softkeymask',
+    'key',
+    'datamask',
+    'button',
+    'outputstring',
+    'outputnumber',
+    'fontattributes',
+}
+
 COLOURS = {
-    'black':        0,
-    'white':        1,
-    'green':        2,
-    'teal':         3,
-    'maroon':       4,
-    'purple':       5,
-    'olive':        6,
-    'silver':       7,
-    'grey':         8,
-    'blue':         9,
-    'lime':         10,
-    'cyan':         11,
-    'red':          12,
-    'magenta':      13,
-    'yellow':       14,
-    'navy':         15,
+    'black': 0,
+    'white': 1,
+    'green': 2,
+    'teal': 3,
+    'maroon': 4,
+    'purple': 5,
+    'olive': 6,
+    'silver': 7,
+    'grey': 8,
+    'blue': 9,
+    'lime': 10,
+    'cyan': 11,
+    'red': 12,
+    'magenta': 13,
+    'yellow': 14,
+    'navy': 15,
 }
 
-# ─── FONT SIZE MAP ───────────────────────────────────────────────────────────
 FONT_SIZES = {
-    '6x8':      0,
-    '8x8':      1,
-    '8x12':     2,
-    '12x16':    3,
-    '16x16':    4,
-    '16x24':    5,
-    '24x32':    6,
-    '32x32':    7,
-    '32x48':    8,
-    '48x64':    9,
-    '64x64':    10,
-    '64x96':    11,
-    '96x128':   12,
-    '128x128':  13,
-    '128x192':  14,
+    '6x8': 0,
+    '8x8': 1,
+    '8x12': 2,
+    '12x16': 3,
+    '16x16': 4,
+    '16x24': 5,
+    '24x32': 6,
+    '32x32': 7,
+    '32x48': 8,
+    '48x64': 9,
+    '64x64': 10,
+    '64x96': 11,
+    '96x128': 12,
+    '128x128': 13,
+    '128x192': 14,
+}
+
+FONT_TYPES = {
+    'latin1': 0,
+    'iso8859-1': 0,
+    'iso8859_1': 0,
+    'iso8859-15': 1,
+    'iso8859_15': 1,
+    'iso8859-2': 2,
+    'iso8859_2': 2,
+    'iso8859-4': 3,
+    'iso8859_4': 3,
+    'iso8859-5': 4,
+    'iso8859_5': 4,
+    'iso8859-7': 5,
+    'iso8859_7': 5,
 }
 
 JUSTIFICATION_H = {
-    'left':     0,
-    'centred':  1,
-    'right':    2,
-    'middle':   1,
+    'left': 0,
+    'centred': 1,
+    'centered': 1,
+    'middle': 1,
+    'right': 2,
 }
 
 JUSTIFICATION_V = {
-    'top':      0,
-    'middle':   1,
-    'bottom':   2,
+    'top': 0,
+    'middle': 1,
+    'center': 1,
+    'centre': 1,
+    'bottom': 2,
 }
 
-def get_colour(name):
-    return COLOURS.get(str(name).lower(), 0)
 
-def get_id(obj_map, name):
-    if name in obj_map:
-        return obj_map[name]
-    return 0xFFFF
+class GeneratorError(RuntimeError):
+    pass
+
 
 def parse_id(element):
-    id_str = element.get('id', '0')
-    try:
-        return int(id_str)
-    except ValueError:
-        return 0
+    return int(element.get('id', '0'), 10)
 
-def encode_string(s, length):
-    encoded = s.encode('latin-1', errors='replace')
-    if len(encoded) < length:
-        encoded += b'\x00' * (length - len(encoded))
-    return encoded[:length]
+
+def parse_int(value, default=0):
+    if value in (None, ''):
+        return default
+    return int(float(value))
+
+
+def parse_float(value, default=0.0):
+    if value in (None, ''):
+        return default
+    return float(value)
+
+
+def parse_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in {'1', 'true', 'yes'}
+
+
+def encode_string(value):
+    return value.encode('latin-1', errors='replace')
+
 
 class IOPGenerator:
     def __init__(self, xml_file):
         self.xml_file = xml_file
-        self.objects = {}
         self.output = bytearray()
         self.name_to_id = {}
+        self.name_to_element = {}
+        self.id_to_name = {}
+        self.objects = []
 
     def load_xml(self):
         tree = ET.parse(self.xml_file)
         self.root = tree.getroot()
-        # First pass - build name to ID map
-        for elem in self.root.iter():
+        if self.root.tag != 'objectpool':
+            raise GeneratorError(f'Unexpected root element: {self.root.tag}')
+
+        for elem in self.root:
+            if elem.tag not in SUPPORTED_TAGS:
+                raise GeneratorError(f'Unsupported object type in XML: {elem.tag}')
+
             name = elem.get('name')
-            id_val = elem.get('id')
-            if name and id_val:
-                try:
-                    self.name_to_id[name] = int(id_val)
-                except ValueError:
-                    pass
+            if not name:
+                raise GeneratorError(f'Missing object name on <{elem.tag}>')
+
+            obj_id = parse_id(elem)
+            if name in self.name_to_id:
+                raise GeneratorError(f'Duplicate object name: {name}')
+            if obj_id in self.id_to_name:
+                raise GeneratorError(f'Duplicate object ID: {obj_id}')
+
+            self.name_to_id[name] = obj_id
+            self.name_to_element[name] = elem
+            self.id_to_name[obj_id] = name
+            self.objects.append(elem)
+
+        self.validate_xml_structure()
+
+    def validate_xml_structure(self):
+        working_sets = [elem for elem in self.objects if elem.tag == 'workingset']
+        if len(working_sets) != 1:
+            raise GeneratorError(f'Expected exactly one workingset, found {len(working_sets)}')
+
+        for elem in self.objects:
+            if elem.tag == 'workingset':
+                self.require_ref(elem, elem.get('active_mask'), 'active_mask')
+            elif elem.tag == 'datamask':
+                self.require_ref(elem, elem.get('soft_key_mask'), 'soft_key_mask')
+            elif elem.tag in {'outputstring', 'outputnumber'}:
+                self.require_ref(elem, elem.get('font_attributes'), 'font_attributes')
+
+            for child in self.get_children(elem):
+                name = child.get('name')
+                if not name:
+                    raise GeneratorError(f'include_object without name in {elem.get("name")}')
+                self.require_ref(elem, name, 'include_object')
+
+    def require_ref(self, elem, ref_name, field_name):
+        if ref_name and ref_name not in self.name_to_id:
+            raise GeneratorError(
+                f'Unknown reference {ref_name!r} in {field_name} for {elem.tag} {elem.get("name")!r}'
+            )
 
     def get_children(self, element):
-        return [c for c in element if c.tag == 'include_object']
+        return [child for child in element if child.tag == 'include_object']
 
-    def resolve_id(self, name):
-        return self.name_to_id.get(name, 0xFFFF)
+    def resolve_id(self, name, allow_null=False):
+        if not name:
+            if allow_null:
+                return 0xFFFF
+            raise GeneratorError('Missing object reference')
+        if name not in self.name_to_id:
+            if allow_null:
+                return 0xFFFF
+            raise GeneratorError(f'Unknown object reference: {name}')
+        return self.name_to_id[name]
 
-    def write_uint8(self, val):
-        self.output += struct.pack('B', int(val) & 0xFF)
+    def get_child_location(self, child_name):
+        referenced = self.name_to_element.get(child_name)
+        if referenced is None:
+            raise GeneratorError(f'Unknown child object: {child_name}')
+        return parse_int(referenced.get('x'), 0), parse_int(referenced.get('y'), 0)
 
-    def write_uint16(self, val):
-        self.output += struct.pack('<H', int(val) & 0xFFFF)
+    def get_colour(self, value, default='black'):
+        colour_name = str(value or default).strip().lower()
+        if colour_name not in COLOURS:
+            raise GeneratorError(f'Unknown colour: {value}')
+        return COLOURS[colour_name]
 
-    def write_uint32(self, val):
-        self.output += struct.pack('<I', int(val) & 0xFFFFFFFF)
+    def get_font_size(self, value):
+        font_size = str(value or '8x8').strip().lower()
+        if font_size not in FONT_SIZES:
+            raise GeneratorError(f'Unknown font size: {value}')
+        return FONT_SIZES[font_size]
+
+    def get_font_type(self, value):
+        font_type = str(value or 'latin1').strip().lower()
+        if font_type not in FONT_TYPES:
+            raise GeneratorError(f'Unsupported font type: {value}')
+        return FONT_TYPES[font_type]
+
+    def get_font_style(self, value):
+        if value in (None, '', 'normal'):
+            return 0
+
+        flags = 0
+        parts = [part.strip().lower() for part in str(value).replace('|', ',').split(',') if part.strip()]
+        style_bits = {
+            'bold': 0,
+            'crossed': 1,
+            'underlined': 2,
+            'italic': 3,
+            'inverted': 4,
+            'flashing': 5,
+            'flashed': 6,
+        }
+        for part in parts:
+            if part not in style_bits:
+                raise GeneratorError(f'Unsupported font style: {value}')
+            flags |= 1 << style_bits[part]
+        return flags
+
+    def get_justification(self, elem):
+        horizontal = JUSTIFICATION_H.get(str(elem.get('horizontal_justification', 'left')).lower(), 0)
+        vertical = JUSTIFICATION_V.get(str(elem.get('vertical_justification', 'top')).lower(), 0)
+        return (vertical << 4) | horizontal
+
+    def get_options(self, elem):
+        return parse_int(elem.get('options'), 0) & 0xFF
+
+    def get_format(self, elem):
+        raw_format = str(elem.get('format', '')).strip().lower()
+        if raw_format in {'', '0', '%d', '%u', '%4d', '%4u', 'fixed'}:
+            return 0
+        if raw_format in {'1', '%e', '%f', 'scientific', 'exponential'}:
+            return 1
+        return parse_int(raw_format, 0) & 0xFF
+
+    def child_object_refs(self, elem, excluded_roles=None):
+        excluded_roles = excluded_roles or set()
+        refs = []
+        for child in self.get_children(elem):
+            if child.get('role', '') in excluded_roles:
+                continue
+            child_name = child.get('name', '')
+            ref_id = self.resolve_id(child_name)
+            x_pos, y_pos = self.get_child_location(child_name)
+            refs.append((ref_id, x_pos, y_pos))
+        return refs
+
+    def write_uint8(self, value):
+        self.output += struct.pack('<B', int(value) & 0xFF)
+
+    def write_int16(self, value):
+        self.output += struct.pack('<h', int(value))
+
+    def write_uint16(self, value):
+        self.output += struct.pack('<H', int(value) & 0xFFFF)
+
+    def write_uint32(self, value):
+        self.output += struct.pack('<I', int(value) & 0xFFFFFFFF)
 
     def encode_workingset(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-        selectable = 1 if elem.get('selectable', 'yes') == 'yes' else 0
-
-        # Find active mask
-        active_mask = 0xFFFF
-        for child in children:
-            role = child.get('role', '')
-            if role == 'active_mask':
-                active_mask = self.resolve_id(child.get('name', ''))
-
-        self.write_uint16(obj_id)
+        children = self.child_object_refs(elem, excluded_roles={'active_mask'})
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['workingset'])
-        self.write_uint8(bg_colour)
-        self.write_uint16(active_mask)
-        self.write_uint8(0)  # object count
-        self.write_uint8(0)  # macro count
-        self.write_uint8(0)  # language count
-        print(f"  WorkingSet ID={obj_id} active_mask={active_mask}")
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint8(1 if parse_bool(elem.get('selectable'), True) else 0)
+        self.write_uint16(self.resolve_id(elem.get('active_mask')))
+        self.write_uint8(len(children))
+        self.write_uint8(0)
+        self.write_uint8(0)
+        for ref_id, x_pos, y_pos in children:
+            self.write_uint16(ref_id)
+            self.write_int16(x_pos)
+            self.write_int16(y_pos)
 
     def encode_datamask(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-
-        soft_key_mask = 0xFFFF
-        object_refs = []
-
-        for child in children:
-            role = child.get('role', '')
-            name = child.get('name', '')
-            if role == 'soft_key_mask':
-                soft_key_mask = self.resolve_id(name)
-            else:
-                ref_id = self.resolve_id(name)
-                if ref_id != 0xFFFF:
-                    object_refs.append(ref_id)
-
-        self.write_uint16(obj_id)
+        children = self.child_object_refs(elem, excluded_roles={'soft_key_mask'})
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['datamask'])
-        self.write_uint8(bg_colour)
-        self.write_uint16(soft_key_mask)
-        self.write_uint8(len(object_refs))
-        self.write_uint8(0)  # macro count
-        for ref in object_refs:
-            self.write_uint16(ref)
-            self.write_uint16(0)  # x
-            self.write_uint16(0)  # y
-        print(f"  DataMask ID={obj_id} skm={soft_key_mask} children={len(object_refs)}")
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint16(self.resolve_id(elem.get('soft_key_mask')))
+        self.write_uint8(len(children))
+        self.write_uint8(0)
+        for ref_id, x_pos, y_pos in children:
+            self.write_uint16(ref_id)
+            self.write_int16(x_pos)
+            self.write_int16(y_pos)
 
     def encode_softkeymask(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-
-        key_refs = []
-        for child in children:
-            name = child.get('name', '')
-            ref_id = self.resolve_id(name)
-            if ref_id != 0xFFFF:
-                key_refs.append(ref_id)
-
-        self.write_uint16(obj_id)
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['softkeymask'])
-        self.write_uint8(bg_colour)
-        self.write_uint8(len(key_refs))
-        self.write_uint8(0)  # macro count
-        for ref in key_refs:
-            self.write_uint16(ref)
-        print(f"  SoftKeyMask ID={obj_id} keys={len(key_refs)}")
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        children = [self.resolve_id(child.get('name')) for child in self.get_children(elem)]
+        self.write_uint8(len(children))
+        self.write_uint8(0)
+        for ref_id in children:
+            self.write_uint16(ref_id)
 
     def encode_key(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-        key_code = int(elem.get('key_code', '0'))
-
-        object_refs = []
-        for child in children:
-            name = child.get('name', '')
-            ref_id = self.resolve_id(name)
-            if ref_id != 0xFFFF:
-                object_refs.append(ref_id)
-
-        self.write_uint16(obj_id)
+        children = self.child_object_refs(elem)
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['key'])
-        self.write_uint8(bg_colour)
-        self.write_uint8(key_code)
-        self.write_uint8(len(object_refs))
-        self.write_uint8(0)  # macro count
-        for ref in object_refs:
-            self.write_uint16(ref)
-            self.write_uint16(0)  # x
-            self.write_uint16(0)  # y
-        print(f"  Key ID={obj_id} key_code={key_code} children={len(object_refs)}")
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint8(parse_int(elem.get('key_code'), 0))
+        self.write_uint8(len(children))
+        self.write_uint8(0)
+        for ref_id, x_pos, y_pos in children:
+            self.write_uint16(ref_id)
+            self.write_int16(x_pos)
+            self.write_int16(y_pos)
 
     def encode_button(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        width = int(elem.get('width', '100'))
-        height = int(elem.get('height', '50'))
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-        border_colour = get_colour(elem.get('border_colour', 'white'))
-        key_code = int(elem.get('key_code', '0'))
-
-        object_refs = []
-        for child in children:
-            name = child.get('name', '')
-            ref_id = self.resolve_id(name)
-            if ref_id != 0xFFFF:
-                object_refs.append(ref_id)
-
-        self.write_uint16(obj_id)
+        children = self.child_object_refs(elem)
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['button'])
-        self.write_uint16(width)
-        self.write_uint16(height)
-        self.write_uint8(bg_colour)
-        self.write_uint8(border_colour)
-        self.write_uint8(key_code)
-        self.write_uint8(0)  # options
-        self.write_uint8(len(object_refs))
-        self.write_uint8(0)  # macro count
-        for ref in object_refs:
-            self.write_uint16(ref)
-            self.write_uint16(0)  # x
-            self.write_uint16(0)  # y
-        print(f"  Button ID={obj_id} {width}x{height} children={len(object_refs)}")
+        self.write_uint16(parse_int(elem.get('width'), 0))
+        self.write_uint16(parse_int(elem.get('height'), 0))
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint8(self.get_colour(elem.get('border_colour', 'white')))
+        self.write_uint8(parse_int(elem.get('key_code'), 0))
+        self.write_uint8(self.get_options(elem))
+        self.write_uint8(len(children))
+        self.write_uint8(0)
+        for ref_id, x_pos, y_pos in children:
+            self.write_uint16(ref_id)
+            self.write_int16(x_pos)
+            self.write_int16(y_pos)
 
     def encode_outputstring(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        width = int(elem.get('width', '100'))
-        height = int(elem.get('height', '20'))
-        font_attr = 0xFFFF
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-        value = elem.get('value', '')
-        length = int(elem.get('length', str(len(value) + 1)))
-        h_just = JUSTIFICATION_H.get(elem.get('horizontal_justification', 'left'), 0)
-        v_just = JUSTIFICATION_V.get(elem.get('vertical_justification', 'top'), 0)
-        options = (v_just << 4) | h_just
-
-        for child in children:
-            role = child.get('role', '')
-            if role == 'font_attributes':
-                font_attr = self.resolve_id(child.get('name', ''))
-
-        self.write_uint16(obj_id)
+        value = encode_string(elem.get('value', ''))
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['outputstring'])
-        self.write_uint16(width)
-        self.write_uint16(height)
-        self.write_uint16(font_attr)
-        self.write_uint8(options)
-        self.write_uint16(0xFFFF)  # variable reference
-        self.write_uint8(h_just)
-        encoded = encode_string(value, length)
-        self.write_uint8(length)
-        self.output += encoded
-        self.write_uint8(0)  # macro count
-        print(f"  OutputString ID={obj_id} '{value[:20]}'")
+        self.write_uint16(parse_int(elem.get('width'), 0))
+        self.write_uint16(parse_int(elem.get('height'), 0))
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint16(self.resolve_id(elem.get('font_attributes')))
+        self.write_uint8(self.get_options(elem))
+        self.write_uint16(0xFFFF)
+        self.write_uint8(self.get_justification(elem))
+        self.write_uint16(len(value))
+        self.output += value
+        self.write_uint8(0)
 
     def encode_outputnumber(self, elem):
-        obj_id = parse_id(elem)
-        children = self.get_children(elem)
-        width = int(elem.get('width', '100'))
-        height = int(elem.get('height', '30'))
-        font_attr = 0xFFFF
-        bg_colour = get_colour(elem.get('background_colour', 'black'))
-        value = int(float(elem.get('value', '0')))
-        offset = int(float(elem.get('offset', '0')))
-        scale = float(elem.get('scale', '1.0'))
-        h_just = JUSTIFICATION_H.get(
-            elem.get('horizontal_justification', 'left'), 0)
-
-        for child in children:
-            role = child.get('role', '')
-            if role == 'font_attributes':
-                font_attr = self.resolve_id(child.get('name', ''))
-
-        self.write_uint16(obj_id)
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['outputnumber'])
-        self.write_uint16(width)
-        self.write_uint16(height)
-        self.write_uint16(font_attr)
-        self.write_uint8(0)  # options
-        self.write_uint16(0xFFFF)  # variable reference
-        self.write_uint8(h_just)
-        self.write_uint32(value)
-        self.write_uint32(offset)
-        # Scale as float32
-        self.output += struct.pack('<f', scale)
-        self.write_uint8(0)  # number of decimals
-        self.write_uint8(0)  # format (fixed)
-        self.write_uint8(0)  # macro count
-        print(f"  OutputNumber ID={obj_id} value={value}")
+        self.write_uint16(parse_int(elem.get('width'), 0))
+        self.write_uint16(parse_int(elem.get('height'), 0))
+        self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
+        self.write_uint16(self.resolve_id(elem.get('font_attributes')))
+        self.write_uint8(self.get_options(elem))
+        self.write_uint16(0xFFFF)
+        self.write_uint32(parse_int(elem.get('value'), 0))
+        self.write_uint32(parse_int(elem.get('offset'), 0))
+        self.output += struct.pack('<f', parse_float(elem.get('scale'), 1.0))
+        self.write_uint8(parse_int(elem.get('number_of_decimals'), 0))
+        self.write_uint8(self.get_format(elem))
+        self.write_uint8(self.get_justification(elem))
+        self.write_uint8(0)
 
     def encode_fontattributes(self, elem):
-        obj_id = parse_id(elem)
-        colour = get_colour(elem.get('font_colour', 'white'))
-        size_str = elem.get('font_size', '8x8')
-        size = FONT_SIZES.get(size_str, 1)
-        style = 0  # normal
-        font_type = 0  # latin1
-
-        self.write_uint16(obj_id)
+        self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['fontattributes'])
-        self.write_uint8(colour)
-        self.write_uint8(size)
-        self.write_uint8(font_type)
-        self.write_uint8(style)
-        self.write_uint8(0)  # macro count
-        print(f"  FontAttributes ID={obj_id} size={size_str} colour={colour}")
+        self.write_uint8(self.get_colour(elem.get('font_colour', 'white'), 'white'))
+        self.write_uint8(self.get_font_size(elem.get('font_size', '8x8')))
+        self.write_uint8(self.get_font_type(elem.get('font_type', 'latin1')))
+        self.write_uint8(self.get_font_style(elem.get('font_style', 'normal')))
+        self.write_uint8(0)
+
+    def validate_serialized_pool(self):
+        data = self.output
+        index = 0
+        object_count = 0
+        while index < len(data):
+            if len(data) - index < 3:
+                raise GeneratorError('Serialized pool ended mid-object header')
+
+            obj_type = data[index + 2]
+            object_count += 1
+
+            if obj_type == OBJECT_TYPES['workingset']:
+                if len(data) - index < 10:
+                    raise GeneratorError('Working set truncated')
+                children = data[index + 7]
+                index += 10 + (children * 6)
+            elif obj_type == OBJECT_TYPES['datamask']:
+                if len(data) - index < 8:
+                    raise GeneratorError('Data mask truncated')
+                children = data[index + 6]
+                index += 8 + (children * 6)
+            elif obj_type == OBJECT_TYPES['softkeymask']:
+                if len(data) - index < 6:
+                    raise GeneratorError('Soft key mask truncated')
+                children = data[index + 4]
+                index += 6 + (children * 2)
+            elif obj_type == OBJECT_TYPES['key']:
+                if len(data) - index < 7:
+                    raise GeneratorError('Key truncated')
+                children = data[index + 5]
+                index += 7 + (children * 6)
+            elif obj_type == OBJECT_TYPES['button']:
+                if len(data) - index < 13:
+                    raise GeneratorError('Button truncated')
+                children = data[index + 11]
+                index += 13 + (children * 6)
+            elif obj_type == OBJECT_TYPES['outputstring']:
+                if len(data) - index < 16:
+                    raise GeneratorError('Output string truncated')
+                string_length = struct.unpack_from('<H', data, index + 14)[0]
+                index += 17 + string_length
+            elif obj_type == OBJECT_TYPES['outputnumber']:
+                if len(data) - index < 29:
+                    raise GeneratorError('Output number truncated')
+                index += 29
+            elif obj_type == OBJECT_TYPES['fontattributes']:
+                if len(data) - index < 8:
+                    raise GeneratorError('Font attributes truncated')
+                index += 8
+            else:
+                raise GeneratorError(f'Unsupported serialized object type {obj_type} at byte {index}')
+
+            if index > len(data):
+                raise GeneratorError('Serialized pool length overflowed object boundary')
+
+        if object_count != len(self.objects):
+            raise GeneratorError(
+                f'Serialized object count mismatch: encoded {object_count}, expected {len(self.objects)}'
+            )
 
     def generate(self, output_file):
-        print(f"Loading XML: {self.xml_file}")
+        print(f'Loading XML: {self.xml_file}')
         self.load_xml()
-        print(f"Found {len(self.name_to_id)} named objects")
-        print(f"Generating binary .iop: {output_file}")
+        print(f'Found {len(self.objects)} objects')
+        print(f'Generating binary .iop: {output_file}')
 
-        # Process objects in correct order
-        # WorkingSet must be first
         encoders = {
-            'workingset':       self.encode_workingset,
-            'softkeymask':      self.encode_softkeymask,
-            'key':              self.encode_key,
-            'datamask':         self.encode_datamask,
-            'button':           self.encode_button,
-            'outputstring':     self.encode_outputstring,
-            'outputnumber':     self.encode_outputnumber,
-            'fontattributes':   self.encode_fontattributes,
+            'workingset': self.encode_workingset,
+            'softkeymask': self.encode_softkeymask,
+            'key': self.encode_key,
+            'datamask': self.encode_datamask,
+            'button': self.encode_button,
+            'outputstring': self.encode_outputstring,
+            'outputnumber': self.encode_outputnumber,
+            'fontattributes': self.encode_fontattributes,
         }
 
-        # First encode workingset
-        for elem in self.root.iter('workingset'):
-            self.encode_workingset(elem)
+        for elem in self.objects:
+            encoders[elem.tag](elem)
 
-        # Then font attributes (referenced by everything)
-        for elem in self.root.iter('fontattributes'):
-            self.encode_fontattributes(elem)
+        self.validate_serialized_pool()
 
-        # Then soft key masks and keys
-        for elem in self.root.iter('softkeymask'):
-            self.encode_softkeymask(elem)
-        for elem in self.root.iter('key'):
-            self.encode_key(elem)
+        with open(output_file, 'wb') as output_handle:
+            output_handle.write(self.output)
 
-        # Then buttons and strings
-        for elem in self.root.iter('button'):
-            self.encode_button(elem)
-        for elem in self.root.iter('outputstring'):
-            self.encode_outputstring(elem)
-        for elem in self.root.iter('outputnumber'):
-            self.encode_outputnumber(elem)
+        print(f'Success! Generated {len(self.output)} bytes')
+        print(f'Output: {output_file}')
 
-        # Data masks last
-        for elem in self.root.iter('datamask'):
-            self.encode_datamask(elem)
-
-        # Write output file
-        with open(output_file, 'wb') as f:
-            f.write(self.output)
-
-        print(f"\nSuccess! Generated {len(self.output)} bytes")
-        print(f"Output: {output_file}")
 
 if __name__ == '__main__':
-    # Paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    xml_input  = os.path.join(script_dir, 'ISO1200PT')
-    iop_output = os.path.join(
-        script_dir,
-        'examples', '1200PT', 'src', 'object_pool', 'object_pool.iop'
-    )
+    xml_input = os.path.join(script_dir, 'object_pool')
+    iop_output = os.path.join(script_dir, 'examples', '1200PT', 'src', 'object_pool', 'object_pool.iop')
 
     if not os.path.exists(xml_input):
-        print(f"ERROR: XML file not found: {xml_input}")
-        print("Make sure ISO1200PT.xml is in the same folder as this script")
+        print(f'ERROR: XML file not found: {xml_input}')
         sys.exit(1)
 
     os.makedirs(os.path.dirname(iop_output), exist_ok=True)
 
-    generator = IOPGenerator(xml_input)
-    generator.generate(iop_output)
+    try:
+        generator = IOPGenerator(xml_input)
+        generator.generate(iop_output)
+    except GeneratorError as error:
+        print(f'ERROR: {error}')
+        sys.exit(1)
