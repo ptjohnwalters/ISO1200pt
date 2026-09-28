@@ -42,5 +42,5 @@ CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 # Memory
 CONFIG_SPIRAM_IGNORE_NOTFOUND=y
 
-# Flash size - match board_build.flash_size = 2MB
-CONFIG_ESPTOOLPY_FLASHSIZE_2MB=y
+# Flash size - match board_build.flash_size = 4MB
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
