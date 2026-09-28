@@ -173,12 +173,10 @@ class IOPGenerator:
         for elem in self.root.iter():
             if elem.tag in {'objectpool', 'include_object'}:
                 continue
-            if elem.tag not in SUPPORTED_TAGS:
-                raise GeneratorError(f'Unsupported object type in XML: {elem.tag}')
 
             name = elem.get('name')
             if not name:
-                raise GeneratorError(f'Missing object name on <{elem.tag}>')
+                continue
 
             obj_id = parse_id(elem)
             if name in self.name_to_id:
@@ -189,7 +187,8 @@ class IOPGenerator:
             self.name_to_id[name] = obj_id
             self.name_to_element[name] = elem
             self.id_to_name[obj_id] = name
-            self.objects.append(elem)
+            if elem.tag in SUPPORTED_TAGS:
+                self.objects.append(elem)
 
         self.validate_xml_structure()
 
@@ -217,6 +216,12 @@ class IOPGenerator:
             raise GeneratorError(
                 f'Unknown reference {ref_name!r} in {field_name} for {elem.tag} {elem.get("name")!r}'
             )
+        if ref_name:
+            referenced = self.name_to_element[ref_name]
+            if referenced.tag not in SUPPORTED_TAGS:
+                raise GeneratorError(
+                    f'Unsupported referenced object {ref_name!r} in {field_name} for {elem.tag} {elem.get("name")!r}'
+                )
 
     def get_children(self, element):
         return [child for child in element if child.tag == 'include_object']
@@ -243,7 +248,11 @@ class IOPGenerator:
             raise GeneratorError(f'Unknown object reference: {name}')
         return self.name_to_id[name]
 
-    def get_child_location(self, child_name):
+    def get_child_location(self, child):
+        if child.get('x') not in (None, '') or child.get('y') not in (None, ''):
+            return parse_int(child.get('x'), 0), parse_int(child.get('y'), 0)
+
+        child_name = child.get('name')
         referenced = self.name_to_element.get(child_name)
         if referenced is None:
             raise GeneratorError(f'Unknown child object: {child_name}')
@@ -312,7 +321,7 @@ class IOPGenerator:
                 continue
             child_name = child.get('name', '')
             ref_id = self.resolve_id(child_name)
-            x_pos, y_pos = self.get_child_location(child_name)
+            x_pos, y_pos = self.get_child_location(child)
             refs.append((ref_id, x_pos, y_pos))
         return refs
 
@@ -514,8 +523,20 @@ class IOPGenerator:
             'fontattributes': self.encode_fontattributes,
         }
 
-        for elem in self.objects:
-            encoders[elem.tag](elem)
+        ordered_tags = [
+            'workingset',
+            'fontattributes',
+            'softkeymask',
+            'key',
+            'button',
+            'outputstring',
+            'outputnumber',
+            'datamask',
+        ]
+        for tag in ordered_tags:
+            for elem in self.objects:
+                if elem.tag == tag:
+                    encoders[tag](elem)
 
         self.validate_serialized_pool()
 
