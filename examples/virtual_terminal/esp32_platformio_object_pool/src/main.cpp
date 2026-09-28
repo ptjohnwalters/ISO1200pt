@@ -24,6 +24,7 @@
 //! It is discouraged to use global variables, but it is done here for simplicity.
 static std::shared_ptr<isobus::VirtualTerminalClient> virtualTerminalClient = nullptr;
 static std::shared_ptr<isobus::VirtualTerminalClientUpdateHelper> virtualTerminalUpdateHelper = nullptr;
+static std::shared_ptr<isobus::SPIInterfaceESP> spiInterface = nullptr;
 
 // This callback will provide us with event driven notifications of softkey presses from the stack
 void handle_softkey_event(const isobus::VirtualTerminalClient::VTKeyEvent &event)
@@ -169,7 +170,7 @@ extern "C" void app_main()
 	spiDeviceConfig.pre_cb = nullptr;
 	spiDeviceConfig.post_cb = nullptr;
 
-	auto spiInterface = std::make_shared<isobus::SPIInterfaceESP>(&spiDeviceConfig, MCP2515_SPI_HOST);
+	spiInterface = std::make_shared<isobus::SPIInterfaceESP>(&spiDeviceConfig, MCP2515_SPI_HOST);
 	if (!spiInterface->init())
 	{
 		ESP_LOGE(TAG, "Failed to initialize SPI device for MCP2515");
@@ -194,6 +195,11 @@ extern "C" void app_main()
 	if (!isobus::CANHardwareInterface::start() || !canDriver->get_is_valid())
 	{
 		ESP_LOGE("AgIsoStack", "Failed to start hardware interface, the CAN driver might be invalid");
+		isobus::CANHardwareInterface::stop();
+		while (true)
+		{
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}
 	}
 	else
 	{
