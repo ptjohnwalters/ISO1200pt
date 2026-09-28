@@ -170,7 +170,9 @@ class IOPGenerator:
         if self.root.tag != 'objectpool':
             raise GeneratorError(f'Unexpected root element: {self.root.tag}')
 
-        for elem in self.root:
+        for elem in self.root.iter():
+            if elem.tag in {'objectpool', 'include_object'}:
+                continue
             if elem.tag not in SUPPORTED_TAGS:
                 raise GeneratorError(f'Unsupported object type in XML: {elem.tag}')
 
@@ -198,11 +200,11 @@ class IOPGenerator:
 
         for elem in self.objects:
             if elem.tag == 'workingset':
-                self.require_ref(elem, elem.get('active_mask'), 'active_mask')
+                self.require_ref(elem, self.get_reference_name(elem, 'active_mask', 'active_mask'), 'active_mask')
             elif elem.tag == 'datamask':
-                self.require_ref(elem, elem.get('soft_key_mask'), 'soft_key_mask')
+                self.require_ref(elem, self.get_reference_name(elem, 'soft_key_mask', 'soft_key_mask'), 'soft_key_mask')
             elif elem.tag in {'outputstring', 'outputnumber'}:
-                self.require_ref(elem, elem.get('font_attributes'), 'font_attributes')
+                self.require_ref(elem, self.get_reference_name(elem, 'font_attributes', 'font_attributes'), 'font_attributes')
 
             for child in self.get_children(elem):
                 name = child.get('name')
@@ -218,6 +220,17 @@ class IOPGenerator:
 
     def get_children(self, element):
         return [child for child in element if child.tag == 'include_object']
+
+    def get_reference_name(self, elem, attribute_name, role_name=None):
+        reference_name = elem.get(attribute_name)
+        if reference_name:
+            return reference_name
+
+        if role_name is not None:
+            for child in self.get_children(elem):
+                if child.get('role', '') == role_name:
+                    return child.get('name')
+        return None
 
     def resolve_id(self, name, allow_null=False):
         if not name:
@@ -321,7 +334,7 @@ class IOPGenerator:
         self.write_uint8(OBJECT_TYPES['workingset'])
         self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
         self.write_uint8(1 if parse_bool(elem.get('selectable'), True) else 0)
-        self.write_uint16(self.resolve_id(elem.get('active_mask')))
+        self.write_uint16(self.resolve_id(self.get_reference_name(elem, 'active_mask', 'active_mask')))
         self.write_uint8(len(children))
         self.write_uint8(0)
         self.write_uint8(0)
@@ -335,7 +348,7 @@ class IOPGenerator:
         self.write_uint16(parse_id(elem))
         self.write_uint8(OBJECT_TYPES['datamask'])
         self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
-        self.write_uint16(self.resolve_id(elem.get('soft_key_mask')))
+        self.write_uint16(self.resolve_id(self.get_reference_name(elem, 'soft_key_mask', 'soft_key_mask')))
         self.write_uint8(len(children))
         self.write_uint8(0)
         for ref_id, x_pos, y_pos in children:
@@ -390,7 +403,7 @@ class IOPGenerator:
         self.write_uint16(parse_int(elem.get('width'), 0))
         self.write_uint16(parse_int(elem.get('height'), 0))
         self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
-        self.write_uint16(self.resolve_id(elem.get('font_attributes')))
+        self.write_uint16(self.resolve_id(self.get_reference_name(elem, 'font_attributes', 'font_attributes')))
         self.write_uint8(self.get_options(elem))
         self.write_uint16(0xFFFF)
         self.write_uint8(self.get_justification(elem))
@@ -404,7 +417,7 @@ class IOPGenerator:
         self.write_uint16(parse_int(elem.get('width'), 0))
         self.write_uint16(parse_int(elem.get('height'), 0))
         self.write_uint8(self.get_colour(elem.get('background_colour', 'black')))
-        self.write_uint16(self.resolve_id(elem.get('font_attributes')))
+        self.write_uint16(self.resolve_id(self.get_reference_name(elem, 'font_attributes', 'font_attributes')))
         self.write_uint8(self.get_options(elem))
         self.write_uint16(0xFFFF)
         self.write_uint32(parse_int(elem.get('value'), 0))
