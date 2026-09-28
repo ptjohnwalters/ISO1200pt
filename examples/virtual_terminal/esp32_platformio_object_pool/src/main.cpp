@@ -1,5 +1,6 @@
 #include "isobus/hardware_integration/can_hardware_interface.hpp"
-#include "isobus/hardware_integration/twai_plugin.hpp"
+#include "isobus/hardware_integration/mcp2515_can_interface.hpp"
+#include "isobus/hardware_integration/spi_interface_esp.hpp"
 #include "isobus/isobus/can_general_parameter_group_numbers.hpp"
 #include "isobus/isobus/can_network_manager.hpp"
 #include "isobus/isobus/can_partnered_control_function.hpp"
@@ -9,6 +10,9 @@
 #include "isobus/utility/iop_file_interface.hpp"
 
 #include "console_logger.cpp"
+#include "driver/gpio.h"
+#include "driver/spi_master.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "objectPoolObjects.h"
@@ -95,13 +99,91 @@ void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event)
 extern "C" const std::uint8_t object_pool_start[] asm("_binary_object_pool_iop_start");
 extern "C" const std::uint8_t object_pool_end[] asm("_binary_object_pool_iop_end");
 
+namespace
+{
+	static constexpr gpio_num_t MCP2515_SPI_SCK = GPIO_NUM_18;
+	static constexpr gpio_num_t MCP2515_SPI_MOSI = GPIO_NUM_23;
+	static constexpr gpio_num_t MCP2515_SPI_MISO = GPIO_NUM_19;
+	static constexpr gpio_num_t MCP2515_SPI_CS = GPIO_NUM_5;
+	static constexpr gpio_num_t MCP2515_INT = GPIO_NUM_4;
+	static constexpr spi_host_device_t MCP2515_SPI_HOST = VSPI_HOST;
+
+	static constexpr std::uint8_t MCP2515_250K_8MHZ_CNF1 = 0x80;
+	static constexpr std::uint8_t MCP2515_250K_8MHZ_CNF2 = 0xE5;
+	static constexpr std::uint8_t MCP2515_250K_8MHZ_CNF3 = 0x83;
+}
+
 extern "C" void app_main()
 {
-	// Automatically load the desired CAN driver based on the available drivers
-	twai_general_config_t twaiConfig = TWAI_GENERAL_CONFIG_DEFAULT(GPIO_NUM_21, GPIO_NUM_22, TWAI_MODE_NORMAL);
-	twai_timing_config_t twaiTiming = TWAI_TIMING_CONFIG_250KBITS();
-	twai_filter_config_t twaiFilter = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-	std::shared_ptr<isobus::CANHardwarePlugin> canDriver = std::make_shared<isobus::TWAIPlugin>(&twaiConfig, &twaiTiming, &twaiFilter);
+	constexpr auto TAG = "VT_MCP2515";
+
+	ESP_LOGI(TAG, "Configuring MCP2515 over SPI (host=%d, SCK=%d, MOSI=%d, MISO=%d, CS=%d, INT=%d, bitrate=250000, osc=8MHz)",
+	         static_cast<int>(MCP2515_SPI_HOST),
+	         static_cast<int>(MCP2515_SPI_SCK),
+	         static_cast<int>(MCP2515_SPI_MOSI),
+	         static_cast<int>(MCP2515_SPI_MISO),
+	         static_cast<int>(MCP2515_SPI_CS),
+	         static_cast<int>(MCP2515_INT));
+
+	spi_bus_config_t spiBusConfig = {};
+	spiBusConfig.mosi_io_num = MCP2515_SPI_MOSI;
+	spiBusConfig.miso_io_num = MCP2515_SPI_MISO;
+	spiBusConfig.sclk_io_num = MCP2515_SPI_SCK;
+	spiBusConfig.quadwp_io_num = -1;
+	spiBusConfig.quadhd_io_num = -1;
+	spiBusConfig.max_transfer_sz = 16;
+
+	const auto spiBusInitResult = spi_bus_initialize(MCP2515_SPI_HOST, &spiBusConfig, SPI_DMA_CH_AUTO);
+	if ((ESP_OK != spiBusInitResult) && (ESP_ERR_INVALID_STATE != spiBusInitResult))
+	{
+		ESP_LOGE(TAG, "Failed to initialize SPI bus: %s", esp_err_to_name(spiBusInitResult));
+		return;
+	}
+
+	gpio_config_t intGpioConfig = {};
+	intGpioConfig.pin_bit_mask = (1ULL << MCP2515_INT);
+	intGpioConfig.mode = GPIO_MODE_INPUT;
+	intGpioConfig.pull_up_en = GPIO_PULLUP_ENABLE;
+	intGpioConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+	intGpioConfig.intr_type = GPIO_INTR_DISABLE;
+	const auto gpioInitResult = gpio_config(&intGpioConfig);
+	if (ESP_OK != gpioInitResult)
+	{
+		ESP_LOGE(TAG, "Failed to configure MCP2515 INT pin: %s", esp_err_to_name(gpioInitResult));
+		return;
+	}
+
+	spi_device_interface_config_t spiDeviceConfig = {};
+	spiDeviceConfig.command_bits = 0;
+	spiDeviceConfig.address_bits = 0;
+	spiDeviceConfig.dummy_bits = 0;
+	spiDeviceConfig.mode = 0;
+	spiDeviceConfig.duty_cycle_pos = 128;
+	spiDeviceConfig.cs_ena_posttrans = 0;
+	spiDeviceConfig.cs_ena_pretrans = 0;
+	spiDeviceConfig.clock_speed_hz = 1 * 1000 * 1000;
+	spiDeviceConfig.input_delay_ns = 0;
+	spiDeviceConfig.spics_io_num = MCP2515_SPI_CS;
+	spiDeviceConfig.queue_size = 1;
+	spiDeviceConfig.flags = 0;
+	spiDeviceConfig.pre_cb = nullptr;
+	spiDeviceConfig.post_cb = nullptr;
+
+	auto spiInterface = std::make_shared<isobus::SPIInterfaceESP>(&spiDeviceConfig, MCP2515_SPI_HOST);
+	if (!spiInterface->init())
+	{
+		ESP_LOGE(TAG, "Failed to initialize SPI device for MCP2515");
+		while (true)
+		{
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}
+	}
+
+	std::shared_ptr<isobus::CANHardwarePlugin> canDriver = std::make_shared<isobus::MCP2515CANInterface>(spiInterface.get(),
+	                                                                                                      MCP2515_250K_8MHZ_CNF1,
+	                                                                                                      MCP2515_250K_8MHZ_CNF2,
+	                                                                                                      MCP2515_250K_8MHZ_CNF3);
+	ESP_LOGI(TAG, "Using MCP2515 bit timing CNF1=0x%02X CNF2=0x%02X CNF3=0x%02X", MCP2515_250K_8MHZ_CNF1, MCP2515_250K_8MHZ_CNF2, MCP2515_250K_8MHZ_CNF3);
 
 	isobus::CANStackLogger::set_can_stack_logger_sink(&logger);
 	isobus::CANStackLogger::set_log_level(isobus::CANStackLogger::LoggingLevel::Info); // Change this to Debug to see more information
@@ -112,6 +194,10 @@ extern "C" void app_main()
 	if (!isobus::CANHardwareInterface::start() || !canDriver->get_is_valid())
 	{
 		ESP_LOGE("AgIsoStack", "Failed to start hardware interface, the CAN driver might be invalid");
+	}
+	else
+	{
+		ESP_LOGI(TAG, "MCP2515 CAN interface started in normal mode");
 	}
 
 	isobus::NAME TestDeviceNAME(0);
