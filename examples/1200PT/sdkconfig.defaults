@@ -48,3 +48,5 @@ CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 # Pthread default stack size to prevent stack overflow in ISOBUS worker threads
 CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=16384
 
+# app_main runs the periodic PID and Virtual Terminal updates outside timer callbacks
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
