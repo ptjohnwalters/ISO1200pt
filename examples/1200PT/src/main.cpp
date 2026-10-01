@@ -128,22 +128,24 @@ void update_display_values()
     // Update fold step display if sequence active
     if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
     {
+        uint8_t step = fold_sequence_get_active_action();
         virtualTerminalUpdateHelper->set_numeric_value(
             VarNum_FoldStep,
-            fold_sequence_get_current_step()
+            step
         );
-        calPosition = 15 + ((fold_sequence_get_current_step() * 80) / FOLD_STEPS);
+        calPosition = 15 + ((step * 80) / FOLD_STEPS);
         calSensorRaw = (calPosition * 4095) / 100;
         virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
         virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
     }
     else if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
     {
+        uint8_t step = fold_sequence_get_active_action();
         virtualTerminalUpdateHelper->set_numeric_value(
             VarNum_UnfoldStep,
-            fold_sequence_get_current_step()
+            step
         );
-        calPosition = 95 - ((fold_sequence_get_current_step() * 80) / UNFOLD_STEPS);
+        calPosition = 95 - ((step * 80) / UNFOLD_STEPS);
         calSensorRaw = (calPosition * 4095) / 100;
         virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
         virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
