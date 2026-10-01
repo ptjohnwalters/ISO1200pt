@@ -54,18 +54,35 @@ static TimerHandle_t pidUpdateTimer = nullptr;
 // Tracks which screen is currently active on InCommand
 enum class ActiveScreen
 {
-    HOME,
-    FOLD,
+    RUN,
     UNFOLD,
-    PLANT,
-    FAN_VAC
+    FOLD,
+    CAL
 };
-static ActiveScreen currentScreen = ActiveScreen::HOME;
+static ActiveScreen currentScreen = ActiveScreen::RUN;
+
+// ─── MARKER TRACKING ─────────────────────────────────────────────────────────────────
+enum class MarkerState
+{
+    OFF,
+    LEFT,
+    RIGHT
+};
+static MarkerState markerState = MarkerState::OFF;
+
+// ─── CALIBRATION STATE ───────────────────────────────────────────────────────────────
+static uint32_t calPosition = 50;
+static uint32_t calTransportLimit = 95;
+static uint32_t calPlantLimit = 15;
+static uint32_t calSensorRaw = 2048;
 
 // ─── FORWARD DECLARATIONS ──────────────────────────────────────────────────────────────
 void update_display_values();
 void handle_softkey_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
 void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
+void reset_action_buttons();
+void handle_unfold_action_button(uint8_t actionIndex);
+void handle_fold_action_button(uint8_t actionIndex);
 
 // ─── PID TIMER CALLBACK ─────────────────────────────────────────────────────────────
 // Called every PID_UPDATE_INTERVAL milliseconds
@@ -109,13 +126,216 @@ void update_display_values()
     );
 
     // Update fold step display if sequence active
-    if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE ||
-        fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
+    if (fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
     {
+        uint8_t step = fold_sequence_get_active_action();
         virtualTerminalUpdateHelper->set_numeric_value(
             VarNum_FoldStep,
-            fold_sequence_get_current_step()
+            step
         );
+        calPosition = 15 + ((step * 80) / FOLD_STEPS);
+        calSensorRaw = (calPosition * 4095) / 100;
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
+    }
+    else if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
+    {
+        uint8_t step = fold_sequence_get_active_action();
+        virtualTerminalUpdateHelper->set_numeric_value(
+            VarNum_UnfoldStep,
+            step
+        );
+        calPosition = 95 - ((step * 80) / UNFOLD_STEPS);
+        calSensorRaw = (calPosition * 4095) / 100;
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
+    }
+
+    if (virtualTerminalClient != nullptr)
+    {
+        const char *stateStr = "MID RANGE";
+        if (calPosition >= calTransportLimit - 5)
+        {
+            stateStr = "TRANSPORT RANGE";
+        }
+        else if (calPosition <= calPlantLimit + 5)
+        {
+            stateStr = "PLANT RANGE";
+        }
+        virtualTerminalClient->send_change_string_value(VarStr_CalPositionState, stateStr);
+    }
+}
+
+// ─── HYDRAULIC ACTION BUTTON HELPERS ────────────────────────────────────────────────
+static uint8_t activeUnfoldAction = 0;
+static uint8_t activeFoldAction = 0;
+
+static const uint16_t UNFOLD_BTN_IDS[6] = {
+    Button_UnfoldAction1, Button_UnfoldAction2, Button_UnfoldAction3,
+    Button_UnfoldAction4, Button_UnfoldAction5, Button_UnfoldAction6
+};
+static const uint16_t UNFOLD_STR_IDS[6] = {
+    VarStr_UnfoldAction1, VarStr_UnfoldAction2, VarStr_UnfoldAction3,
+    VarStr_UnfoldAction4, VarStr_UnfoldAction5, VarStr_UnfoldAction6
+};
+
+static const uint16_t FOLD_BTN_IDS[6] = {
+    Button_FoldAction1, Button_FoldAction2, Button_FoldAction3,
+    Button_FoldAction4, Button_FoldAction5, Button_FoldAction6
+};
+static const uint16_t FOLD_STR_IDS[6] = {
+    VarStr_FoldAction1, VarStr_FoldAction2, VarStr_FoldAction3,
+    VarStr_FoldAction4, VarStr_FoldAction5, VarStr_FoldAction6
+};
+
+void reset_action_buttons()
+{
+    if (virtualTerminalClient != nullptr)
+    {
+        if (activeUnfoldAction >= 1 && activeUnfoldAction <= 6)
+        {
+            uint8_t idx = activeUnfoldAction - 1;
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
+        }
+        if (activeFoldAction >= 1 && activeFoldAction <= 6)
+        {
+            uint8_t idx = activeFoldAction - 1;
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
+        }
+    }
+    activeUnfoldAction = 0;
+    activeFoldAction = 0;
+}
+
+void handle_unfold_action_button(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > 6) return;
+
+    if (activeFoldAction != 0)
+    {
+        reset_action_buttons();
+        fold_sequence_cancel();
+    }
+
+    if (activeUnfoldAction == actionIndex)
+    {
+        // Safe-stop toggle: pressing active action de-energizes it
+        fold_sequence_cancel();
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_UnfoldInstruction,
+                "HYDRAULICS SAFE - IDLE"
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, 0);
+        }
+        activeUnfoldAction = 0;
+    }
+    else
+    {
+        // De-energize previous action button display if active
+        if (activeUnfoldAction != 0 && virtualTerminalClient != nullptr)
+        {
+            uint8_t prevIdx = activeUnfoldAction - 1;
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[prevIdx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[prevIdx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[prevIdx], 2);
+        }
+
+        // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
+        fold_sequence_activate_unfold_action(actionIndex);
+        activeUnfoldAction = actionIndex;
+
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "STOP");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 12); // Red
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 12);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_UnfoldInstruction,
+                fold_sequence_get_instruction()
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, actionIndex);
+        }
+    }
+}
+
+void handle_fold_action_button(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > 6) return;
+
+    if (activeUnfoldAction != 0)
+    {
+        reset_action_buttons();
+        fold_sequence_cancel();
+    }
+
+    if (activeFoldAction == actionIndex)
+    {
+        // Safe-stop toggle: pressing active action de-energizes it
+        fold_sequence_cancel();
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_FoldInstruction,
+                "HYDRAULICS SAFE - IDLE"
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, 0);
+        }
+        activeFoldAction = 0;
+    }
+    else
+    {
+        // De-energize previous action button display if active
+        if (activeFoldAction != 0 && virtualTerminalClient != nullptr)
+        {
+            uint8_t prevIdx = activeFoldAction - 1;
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[prevIdx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[prevIdx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[prevIdx], 2);
+        }
+
+        // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
+        fold_sequence_activate_fold_action(actionIndex);
+        activeFoldAction = actionIndex;
+
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "STOP");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 12); // Red
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 12);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_FoldInstruction,
+                fold_sequence_get_instruction()
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, actionIndex);
+        }
     }
 }
 
@@ -132,29 +352,19 @@ void handle_softkey_event(
 
     switch (event.objectID)
     {
-        case SoftKey_Home:
-            // Return to home screen
-            // Cancel any active sequence first
-            if (fold_sequence_get_state() != SequenceState::IDLE)
-            {
-                fold_sequence_cancel();
-            }
+        case SoftKey_Run:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_Home
+                DataMask_Run
             );
-            currentScreen = ActiveScreen::HOME;
-            break;
-
-        case SoftKey_Fold:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Fold
-            );
-            currentScreen = ActiveScreen::FOLD;
+            currentScreen = ActiveScreen::RUN;
             break;
 
         case SoftKey_Unfold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Unfold
@@ -162,20 +372,24 @@ void handle_softkey_event(
             currentScreen = ActiveScreen::UNFOLD;
             break;
 
-        case SoftKey_Plant:
+        case SoftKey_Fold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_Plant
+                DataMask_Fold
             );
-            currentScreen = ActiveScreen::PLANT;
+            currentScreen = ActiveScreen::FOLD;
             break;
 
-        case SoftKey_FanVac:
+        case SoftKey_Cal:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_FanVac
+                DataMask_Cal
             );
-            currentScreen = ActiveScreen::FAN_VAC;
+            currentScreen = ActiveScreen::CAL;
             break;
 
         default:
@@ -196,16 +410,20 @@ void handle_button_event(
 
     switch (event.objectID)
     {
-        // ── HOME SCREEN NAVIGATION ───────────────────────────────────────────────
-        case Button_GoToFold:
+        // ── TOP TAB NAVIGATION ───────────────────────────────────────────────
+        case Button_TabRun:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_Fold
+                DataMask_Run
             );
-            currentScreen = ActiveScreen::FOLD;
+            currentScreen = ActiveScreen::RUN;
             break;
 
-        case Button_GoToUnfold:
+        case Button_TabUnfold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Unfold
@@ -213,97 +431,74 @@ void handle_button_event(
             currentScreen = ActiveScreen::UNFOLD;
             break;
 
-        case Button_GoToPlant:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_Plant
-            );
-            currentScreen = ActiveScreen::PLANT;
-            break;
-
-        case Button_GoToFanVac:
-            virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                WorkingSet_1200PT,
-                DataMask_FanVac
-            );
-            currentScreen = ActiveScreen::FAN_VAC;
-            break;
-
-        // ── FOLD SEQUENCE BUTTONS ───────────────────────────────────────────────────
-        case Button_FoldNext:
-        {
-            if (fold_sequence_get_state() == SequenceState::IDLE ||
-                fold_sequence_get_state() == SequenceState::COMPLETE)
-            {
-                // Start fold sequence
-                fold_sequence_start_fold();
-            }
-            else
-            {
-                // Advance to next step
-                bool complete = fold_sequence_next_step();
-                if (complete)
-                {
-                    // Sequence complete - show completion message
-                    virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                        WorkingSet_1200PT,
-                        DataMask_Home
-                    );
-                    currentScreen = ActiveScreen::HOME;
-                }
-            }
-        }
-        break;
-
-        case Button_FoldPrev:
-            fold_sequence_prev_step();
-            break;
-
-        case Button_FoldCancel:
+        case Button_TabFold:
             fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_Home
+                DataMask_Fold
             );
-            currentScreen = ActiveScreen::HOME;
+            currentScreen = ActiveScreen::FOLD;
             break;
 
-        // ── UNFOLD SEQUENCE BUTTONS ──────────────────────────────────────────────────
-        case Button_UnfoldNext:
-        {
-            if (fold_sequence_get_state() == SequenceState::IDLE ||
-                fold_sequence_get_state() == SequenceState::COMPLETE)
-            {
-                // Start unfold sequence
-                fold_sequence_start_unfold();
-            }
-            else
-            {
-                // Advance to next step
-                bool complete = fold_sequence_next_step();
-                if (complete)
-                {
-                    virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
-                        WorkingSet_1200PT,
-                        DataMask_Home
-                    );
-                    currentScreen = ActiveScreen::HOME;
-                }
-            }
-        }
-        break;
-
-        case Button_UnfoldPrev:
-            fold_sequence_prev_step();
-            break;
-
-        case Button_UnfoldCancel:
+        case Button_TabCal:
             fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
-                DataMask_Home
+                DataMask_Cal
             );
-            currentScreen = ActiveScreen::HOME;
+            currentScreen = ActiveScreen::CAL;
+            break;
+
+        // ── FOLD ACTION BUTTONS ─────────────────────────────────────────────────────
+        case Button_FoldAction1:
+            handle_fold_action_button(1);
+            break;
+
+        case Button_FoldAction2:
+            handle_fold_action_button(2);
+            break;
+
+        case Button_FoldAction3:
+            handle_fold_action_button(3);
+            break;
+
+        case Button_FoldAction4:
+            handle_fold_action_button(4);
+            break;
+
+        case Button_FoldAction5:
+            handle_fold_action_button(5);
+            break;
+
+        case Button_FoldAction6:
+            handle_fold_action_button(6);
+            break;
+
+        // ── UNFOLD ACTION BUTTONS ───────────────────────────────────────────────────
+        case Button_UnfoldAction1:
+            handle_unfold_action_button(1);
+            break;
+
+        case Button_UnfoldAction2:
+            handle_unfold_action_button(2);
+            break;
+
+        case Button_UnfoldAction3:
+            handle_unfold_action_button(3);
+            break;
+
+        case Button_UnfoldAction4:
+            handle_unfold_action_button(4);
+            break;
+
+        case Button_UnfoldAction5:
+            handle_unfold_action_button(5);
+            break;
+
+        case Button_UnfoldAction6:
+            handle_unfold_action_button(6);
             break;
 
         // ── PLANT MODE BUTTONS ─────────────────────────────────────────────────
@@ -319,21 +514,128 @@ void handle_button_event(
             plant_control_set_lowered();
             break;
 
-        // ── FAN VAC BUTTONS ───────────────────────────────────────────────────
+        // ── BULK FILL (FAN) BUTTONS ───────────────────────────────────────────
         case Button_FanSpeedUp:
             fan_vac_fan_speed_up();
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_FanRPMTarget,
+                fan_vac_get_status().fanRPMTarget
+            );
             break;
 
         case Button_FanSpeedDown:
             fan_vac_fan_speed_down();
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_FanRPMTarget,
+                fan_vac_get_status().fanRPMTarget
+            );
             break;
 
+        case Button_FanPower:
+            fan_vac_toggle_fan_power();
+            if (virtualTerminalClient != nullptr)
+            {
+                virtualTerminalClient->send_change_string_value(
+                    OutStr_BtnFanPower,
+                    fan_vac_is_fan_on() ? "ON" : "OFF"
+                );
+            }
+            break;
+
+        // ── VACUUM BUTTONS ────────────────────────────────────────────────────
         case Button_VacPressureUp:
             fan_vac_vac_pressure_up();
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_VacTarget,
+                fan_vac_get_status().vacPressureTarget
+            );
             break;
 
         case Button_VacPressureDown:
             fan_vac_vac_pressure_down();
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_VacTarget,
+                fan_vac_get_status().vacPressureTarget
+            );
+            break;
+
+        case Button_VacPower:
+            fan_vac_toggle_vac_power();
+            if (virtualTerminalClient != nullptr)
+            {
+                virtualTerminalClient->send_change_string_value(
+                    OutStr_BtnVacPower,
+                    fan_vac_is_vac_on() ? "ON" : "OFF"
+                );
+            }
+            break;
+
+        // ── MARKER CONTROL BUTTONS ────────────────────────────────────────────
+        case Button_MarkerNext:
+        case Button_MarkerToggle:
+        {
+            if (markerState == MarkerState::OFF)
+                markerState = MarkerState::LEFT;
+            else if (markerState == MarkerState::LEFT)
+                markerState = MarkerState::RIGHT;
+            else
+                markerState = MarkerState::OFF;
+
+            if (virtualTerminalClient != nullptr)
+            {
+                const char *mStr = (markerState == MarkerState::LEFT) ? "MARKER: 1" :
+                                   (markerState == MarkerState::RIGHT) ? "MARKER: 2" : "MARKER: OFF";
+                virtualTerminalClient->send_change_string_value(VarStr_MarkerStatus, mStr);
+            }
+        }
+        break;
+
+        case Button_MarkerPrev:
+        {
+            if (markerState == MarkerState::OFF)
+                markerState = MarkerState::RIGHT;
+            else if (markerState == MarkerState::RIGHT)
+                markerState = MarkerState::LEFT;
+            else
+                markerState = MarkerState::OFF;
+
+            if (virtualTerminalClient != nullptr)
+            {
+                const char *mStr = (markerState == MarkerState::LEFT) ? "MARKER: 1" :
+                                   (markerState == MarkerState::RIGHT) ? "MARKER: 2" : "MARKER: OFF";
+                virtualTerminalClient->send_change_string_value(VarStr_MarkerStatus, mStr);
+            }
+        }
+        break;
+
+        // ── CALIBRATION BUTTONS ───────────────────────────────────────────────
+        case Button_CalSetTransport:
+            calTransportLimit = calPosition;
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_CalTransportLimit,
+                calTransportLimit
+            );
+            break;
+
+        case Button_CalSetPlant:
+            calPlantLimit = calPosition;
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_CalPlantLimit,
+                calPlantLimit
+            );
+            break;
+
+        case Button_CalZero:
+            calPosition = 0;
+            calSensorRaw = 0;
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_CalPosition,
+                calPosition
+            );
+            virtualTerminalUpdateHelper->set_numeric_value(
+                VarNum_CalSensorRaw,
+                calSensorRaw
+            );
             break;
 
         default:
@@ -492,12 +794,16 @@ extern "C" void app_main()
         );
 
     // Track all numeric values we will update at runtime
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FoldStep,    0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_UnfoldStep,  0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMTarget,  FAN_RPM_DEFAULT);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMActual,  0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacTarget,     VAC_PRESSURE_DEFAULT);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacActual,     0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FoldStep,          1);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_UnfoldStep,        1);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMTarget,      FAN_RPM_DEFAULT);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMActual,      0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacTarget,         VAC_PRESSURE_DEFAULT);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacActual,         0);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPosition,       calPosition);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalTransportLimit, calTransportLimit);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPlantLimit,     calPlantLimit);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalSensorRaw,      calSensorRaw);
     virtualTerminalUpdateHelper->initialize();
 
     // ── MODULE INITIALIZATION ─────────────────────────────────────────────────────
