@@ -103,6 +103,15 @@ void fold_sequence_cancel();
 // Apply solenoid states for current step
 void fold_sequence_apply_current_step();
 
+// Activate a specific fold action (1-based: 1..6). De-energizes all outputs before applying states.
+void fold_sequence_activate_fold_action(uint8_t actionIndex);
+
+// Activate a specific unfold action (1-based: 1..6). De-energizes all outputs before applying states.
+void fold_sequence_activate_unfold_action(uint8_t actionIndex);
+
+// Get active action number (0 = none, 1..6 = active action)
+uint8_t fold_sequence_get_active_action();
+
 // De-energize all solenoids immediately
 void fold_sequence_all_off();
 

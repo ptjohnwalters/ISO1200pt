@@ -45,15 +45,21 @@
 #define Button_GoToPlant             6003
 #define Button_GoToFanVac            6000
 
-// ─── FOLD SEQUENCE BUTTONS ───────────────────────────────────────────────────
-#define Button_FoldNext              6010   // Advance to next fold step
-#define Button_FoldPrev              6011   // Go back one fold step
-#define Button_FoldCancel            6012   // Cancel fold sequence
+// ─── FOLD ACTION BUTTONS ──────────────────────────────────────────────────────
+#define Button_FoldAction1           6010   // Step 1: Retract Tongue
+#define Button_FoldAction2           6011   // Step 2: Rotate Bar
+#define Button_FoldAction3           6012   // Step 3: Latch Transport Hooks
+#define Button_FoldAction4           6013   // Step 4: Fold Wings
+#define Button_FoldAction5           6014   // Step 5: Raise Planter
+#define Button_FoldAction6           6015   // Step 6: Latch Wings & Center Bar
 
-// ─── UNFOLD SEQUENCE BUTTONS ─────────────────────────────────────────────────
-#define Button_UnfoldNext            6020   // Advance to next unfold step
-#define Button_UnfoldPrev            6021   // Go back one unfold step
-#define Button_UnfoldCancel          6022   // Cancel unfold sequence
+// ─── UNFOLD ACTION BUTTONS ────────────────────────────────────────────────────
+#define Button_UnfoldAction1         6020   // Step 1: Unlatch Wings & Wing Tilt
+#define Button_UnfoldAction2         6021   // Step 2: Lower Planter
+#define Button_UnfoldAction3         6022   // Step 3: Unfold Wings
+#define Button_UnfoldAction4         6023   // Step 4: Unlatch Transport Hooks
+#define Button_UnfoldAction5         6024   // Step 5: Rotate Bar
+#define Button_UnfoldAction6         6025   // Step 6: Extend Tongue
 
 // ─── PLANT MODE BUTTONS ──────────────────────────────────────────────────────
 #define Button_PlantLimitedLift      6030   // Activate limited lift
@@ -168,6 +174,18 @@
 #define VarStr_MarkerDetail          22011  // "1 = LEFT     2 = RIGHT     OFF"
 #define VarStr_CalPositionState      22020  // "MID RANGE", "PLANT RANGE", "TRANSPORT RANGE"
 #define VarStr_CalFaultMessage       22021  // "STATUS: OK - NO ACTIVE FAULTS"
+#define VarStr_UnfoldAction1         22030  // "ACTIVATE" / "STOP"
+#define VarStr_UnfoldAction2         22031
+#define VarStr_UnfoldAction3         22032
+#define VarStr_UnfoldAction4         22033
+#define VarStr_UnfoldAction5         22034
+#define VarStr_UnfoldAction6         22035
+#define VarStr_FoldAction1           22040  // "ACTIVATE" / "STOP"
+#define VarStr_FoldAction2           22041
+#define VarStr_FoldAction3           22042
+#define VarStr_FoldAction4           22043
+#define VarStr_FoldAction5           22044
+#define VarStr_FoldAction6           22045
 
 // ─── NUMERIC VALUES ───────────────────────────────────────────────────────────
 #define OutNum_FoldStep              12000  // Current fold step number

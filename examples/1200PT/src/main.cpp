@@ -80,6 +80,9 @@ static uint32_t calSensorRaw = 2048;
 void update_display_values();
 void handle_softkey_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
 void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
+void reset_action_buttons();
+void handle_unfold_action_button(uint8_t actionIndex);
+void handle_fold_action_button(uint8_t actionIndex);
 
 // ─── PID TIMER CALLBACK ─────────────────────────────────────────────────────────────
 // Called every PID_UPDATE_INTERVAL milliseconds
@@ -161,6 +164,179 @@ void update_display_values()
     }
 }
 
+// ─── HYDRAULIC ACTION BUTTON HELPERS ────────────────────────────────────────────────
+static uint8_t activeUnfoldAction = 0;
+static uint8_t activeFoldAction = 0;
+
+static const uint16_t UNFOLD_BTN_IDS[6] = {
+    Button_UnfoldAction1, Button_UnfoldAction2, Button_UnfoldAction3,
+    Button_UnfoldAction4, Button_UnfoldAction5, Button_UnfoldAction6
+};
+static const uint16_t UNFOLD_STR_IDS[6] = {
+    VarStr_UnfoldAction1, VarStr_UnfoldAction2, VarStr_UnfoldAction3,
+    VarStr_UnfoldAction4, VarStr_UnfoldAction5, VarStr_UnfoldAction6
+};
+
+static const uint16_t FOLD_BTN_IDS[6] = {
+    Button_FoldAction1, Button_FoldAction2, Button_FoldAction3,
+    Button_FoldAction4, Button_FoldAction5, Button_FoldAction6
+};
+static const uint16_t FOLD_STR_IDS[6] = {
+    VarStr_FoldAction1, VarStr_FoldAction2, VarStr_FoldAction3,
+    VarStr_FoldAction4, VarStr_FoldAction5, VarStr_FoldAction6
+};
+
+void reset_action_buttons()
+{
+    if (virtualTerminalClient != nullptr)
+    {
+        if (activeUnfoldAction >= 1 && activeUnfoldAction <= 6)
+        {
+            uint8_t idx = activeUnfoldAction - 1;
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
+        }
+        if (activeFoldAction >= 1 && activeFoldAction <= 6)
+        {
+            uint8_t idx = activeFoldAction - 1;
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
+        }
+    }
+    activeUnfoldAction = 0;
+    activeFoldAction = 0;
+}
+
+void handle_unfold_action_button(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > 6) return;
+
+    if (activeFoldAction != 0)
+    {
+        reset_action_buttons();
+        fold_sequence_cancel();
+    }
+
+    if (activeUnfoldAction == actionIndex)
+    {
+        // Safe-stop toggle: pressing active action de-energizes it
+        fold_sequence_cancel();
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_UnfoldInstruction,
+                "HYDRAULICS SAFE - IDLE"
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, 0);
+        }
+        activeUnfoldAction = 0;
+    }
+    else
+    {
+        // De-energize previous action button display if active
+        if (activeUnfoldAction != 0 && virtualTerminalClient != nullptr)
+        {
+            uint8_t prevIdx = activeUnfoldAction - 1;
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[prevIdx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[prevIdx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[prevIdx], 2);
+        }
+
+        // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
+        fold_sequence_activate_unfold_action(actionIndex);
+        activeUnfoldAction = actionIndex;
+
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "STOP");
+            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 12); // Red
+            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 12);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_UnfoldInstruction,
+                fold_sequence_get_instruction()
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, actionIndex);
+        }
+    }
+}
+
+void handle_fold_action_button(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > 6) return;
+
+    if (activeUnfoldAction != 0)
+    {
+        reset_action_buttons();
+        fold_sequence_cancel();
+    }
+
+    if (activeFoldAction == actionIndex)
+    {
+        // Safe-stop toggle: pressing active action de-energizes it
+        fold_sequence_cancel();
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_FoldInstruction,
+                "HYDRAULICS SAFE - IDLE"
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, 0);
+        }
+        activeFoldAction = 0;
+    }
+    else
+    {
+        // De-energize previous action button display if active
+        if (activeFoldAction != 0 && virtualTerminalClient != nullptr)
+        {
+            uint8_t prevIdx = activeFoldAction - 1;
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[prevIdx], "ACTIVATE");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[prevIdx], 2); // Green
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[prevIdx], 2);
+        }
+
+        // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
+        fold_sequence_activate_fold_action(actionIndex);
+        activeFoldAction = actionIndex;
+
+        uint8_t idx = actionIndex - 1;
+        if (virtualTerminalClient != nullptr)
+        {
+            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "STOP");
+            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 12); // Red
+            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 12);
+            virtualTerminalClient->send_change_string_value(
+                VarStr_FoldInstruction,
+                fold_sequence_get_instruction()
+            );
+        }
+        if (virtualTerminalUpdateHelper != nullptr)
+        {
+            virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, actionIndex);
+        }
+    }
+}
+
 // ─── SOFTKEY EVENT HANDLER ──────────────────────────────────────────────────────────
 // Handles navigation soft keys on InCommand display
 void handle_softkey_event(
@@ -175,6 +351,8 @@ void handle_softkey_event(
     switch (event.objectID)
     {
         case SoftKey_Run:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Run
@@ -183,6 +361,8 @@ void handle_softkey_event(
             break;
 
         case SoftKey_Unfold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Unfold
@@ -191,6 +371,8 @@ void handle_softkey_event(
             break;
 
         case SoftKey_Fold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Fold
@@ -199,6 +381,8 @@ void handle_softkey_event(
             break;
 
         case SoftKey_Cal:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Cal
@@ -226,6 +410,8 @@ void handle_button_event(
     {
         // ── TOP TAB NAVIGATION ───────────────────────────────────────────────
         case Button_TabRun:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Run
@@ -234,6 +420,8 @@ void handle_button_event(
             break;
 
         case Button_TabUnfold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Unfold
@@ -242,6 +430,8 @@ void handle_button_event(
             break;
 
         case Button_TabFold:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Fold
@@ -250,6 +440,8 @@ void handle_button_event(
             break;
 
         case Button_TabCal:
+            fold_sequence_cancel();
+            reset_action_buttons();
             virtualTerminalUpdateHelper->set_active_data_or_alarm_mask(
                 WorkingSet_1200PT,
                 DataMask_Cal
@@ -257,130 +449,54 @@ void handle_button_event(
             currentScreen = ActiveScreen::CAL;
             break;
 
-        // ── FOLD SEQUENCE BUTTONS ───────────────────────────────────────────────────
-        case Button_FoldNext:
-        {
-            if (fold_sequence_get_state() == SequenceState::IDLE ||
-                fold_sequence_get_state() == SequenceState::COMPLETE)
-            {
-                fold_sequence_start_fold();
-            }
-            else
-            {
-                bool complete = fold_sequence_next_step();
-                if (complete)
-                {
-                    if (virtualTerminalClient != nullptr)
-                    {
-                        virtualTerminalClient->send_change_string_value(
-                            VarStr_FoldInstruction,
-                            "FOLD COMPLETE"
-                        );
-                    }
-                }
-            }
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_FoldStep,
-                fold_sequence_get_current_step()
-            );
-            if (virtualTerminalClient != nullptr && fold_sequence_get_state() == SequenceState::FOLD_ACTIVE)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_FoldInstruction,
-                    fold_sequence_get_instruction()
-                );
-            }
-        }
-        break;
-
-        case Button_FoldPrev:
-            fold_sequence_prev_step();
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_FoldStep,
-                fold_sequence_get_current_step()
-            );
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_FoldInstruction,
-                    fold_sequence_get_instruction()
-                );
-            }
+        // ── FOLD ACTION BUTTONS ─────────────────────────────────────────────────────
+        case Button_FoldAction1:
+            handle_fold_action_button(1);
             break;
 
-        case Button_FoldCancel:
-            fold_sequence_cancel();
-            virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, 1);
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_FoldInstruction,
-                    "FOLD CANCELLED"
-                );
-            }
+        case Button_FoldAction2:
+            handle_fold_action_button(2);
             break;
 
-        // ── UNFOLD SEQUENCE BUTTONS ──────────────────────────────────────────────────
-        case Button_UnfoldNext:
-        {
-            if (fold_sequence_get_state() == SequenceState::IDLE ||
-                fold_sequence_get_state() == SequenceState::COMPLETE)
-            {
-                fold_sequence_start_unfold();
-            }
-            else
-            {
-                bool complete = fold_sequence_next_step();
-                if (complete)
-                {
-                    if (virtualTerminalClient != nullptr)
-                    {
-                        virtualTerminalClient->send_change_string_value(
-                            VarStr_UnfoldInstruction,
-                            "UNFOLD COMPLETE"
-                        );
-                    }
-                }
-            }
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_UnfoldStep,
-                fold_sequence_get_current_step()
-            );
-            if (virtualTerminalClient != nullptr && fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_UnfoldInstruction,
-                    fold_sequence_get_instruction()
-                );
-            }
-        }
-        break;
-
-        case Button_UnfoldPrev:
-            fold_sequence_prev_step();
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_UnfoldStep,
-                fold_sequence_get_current_step()
-            );
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_UnfoldInstruction,
-                    fold_sequence_get_instruction()
-                );
-            }
+        case Button_FoldAction3:
+            handle_fold_action_button(3);
             break;
 
-        case Button_UnfoldCancel:
-            fold_sequence_cancel();
-            virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, 1);
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    VarStr_UnfoldInstruction,
-                    "UNFOLD CANCELLED"
-                );
-            }
+        case Button_FoldAction4:
+            handle_fold_action_button(4);
+            break;
+
+        case Button_FoldAction5:
+            handle_fold_action_button(5);
+            break;
+
+        case Button_FoldAction6:
+            handle_fold_action_button(6);
+            break;
+
+        // ── UNFOLD ACTION BUTTONS ───────────────────────────────────────────────────
+        case Button_UnfoldAction1:
+            handle_unfold_action_button(1);
+            break;
+
+        case Button_UnfoldAction2:
+            handle_unfold_action_button(2);
+            break;
+
+        case Button_UnfoldAction3:
+            handle_unfold_action_button(3);
+            break;
+
+        case Button_UnfoldAction4:
+            handle_unfold_action_button(4);
+            break;
+
+        case Button_UnfoldAction5:
+            handle_unfold_action_button(5);
+            break;
+
+        case Button_UnfoldAction6:
+            handle_unfold_action_button(6);
             break;
 
         // ── PLANT MODE BUTTONS ─────────────────────────────────────────────────

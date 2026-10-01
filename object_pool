@@ -98,26 +98,46 @@
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
-       BUTTONS - Sequence Navigation Controls
+       BUTTONS - Sequence Hydraulic Action Buttons
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="white" border_colour="black" height="65" id="6021" key_code="0" latchable="no" name="Btn_UnfoldPrev" width="110" x="20" y="385">
-    <include_object id="11035" name="Label_BtnPrev" role=""/>
+  <!-- UNFOLD Action Buttons (IDs: 6020-6025) -->
+  <button background_colour="green" border_colour="black" height="34" id="6020" key_code="0" latchable="no" name="Btn_UnfoldAction1" width="135" x="325" y="114">
+    <include_object id="22030" name="Str_UnfoldAction1" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="65" id="6020" key_code="0" latchable="no" name="Btn_UnfoldNext" width="190" x="145" y="385">
-    <include_object id="11037" name="Label_BtnNextStep" role=""/>
+  <button background_colour="green" border_colour="black" height="34" id="6021" key_code="0" latchable="no" name="Btn_UnfoldAction2" width="135" x="325" y="154">
+    <include_object id="22031" name="Str_UnfoldAction2" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="65" id="6022" key_code="0" latchable="no" name="Btn_UnfoldCancel" width="110" x="350" y="385">
-    <include_object id="11036" name="Label_BtnCancel" role=""/>
+  <button background_colour="green" border_colour="black" height="34" id="6022" key_code="0" latchable="no" name="Btn_UnfoldAction3" width="135" x="325" y="194">
+    <include_object id="22032" name="Str_UnfoldAction3" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6023" key_code="0" latchable="no" name="Btn_UnfoldAction4" width="135" x="325" y="234">
+    <include_object id="22033" name="Str_UnfoldAction4" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6024" key_code="0" latchable="no" name="Btn_UnfoldAction5" width="135" x="325" y="274">
+    <include_object id="22034" name="Str_UnfoldAction5" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6025" key_code="0" latchable="no" name="Btn_UnfoldAction6" width="135" x="325" y="314">
+    <include_object id="22035" name="Str_UnfoldAction6" role=""/>
   </button>
 
-  <button background_colour="white" border_colour="black" height="65" id="6011" key_code="0" latchable="no" name="Btn_FoldPrev" width="110" x="20" y="385">
-    <include_object id="11035" name="Label_BtnPrev" role=""/>
+  <!-- FOLD Action Buttons (IDs: 6010-6015) -->
+  <button background_colour="green" border_colour="black" height="34" id="6010" key_code="0" latchable="no" name="Btn_FoldAction1" width="135" x="325" y="114">
+    <include_object id="22040" name="Str_FoldAction1" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="65" id="6010" key_code="0" latchable="no" name="Btn_FoldNext" width="190" x="145" y="385">
-    <include_object id="11037" name="Label_BtnNextStep" role=""/>
+  <button background_colour="green" border_colour="black" height="34" id="6011" key_code="0" latchable="no" name="Btn_FoldAction2" width="135" x="325" y="154">
+    <include_object id="22041" name="Str_FoldAction2" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="65" id="6012" key_code="0" latchable="no" name="Btn_FoldCancel" width="110" x="350" y="385">
-    <include_object id="11036" name="Label_BtnCancel" role=""/>
+  <button background_colour="green" border_colour="black" height="34" id="6012" key_code="0" latchable="no" name="Btn_FoldAction3" width="135" x="325" y="194">
+    <include_object id="22042" name="Str_FoldAction3" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6013" key_code="0" latchable="no" name="Btn_FoldAction4" width="135" x="325" y="234">
+    <include_object id="22043" name="Str_FoldAction4" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6014" key_code="0" latchable="no" name="Btn_FoldAction5" width="135" x="325" y="274">
+    <include_object id="22044" name="Str_FoldAction5" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="34" id="6015" key_code="0" latchable="no" name="Btn_FoldAction6" width="135" x="325" y="314">
+    <include_object id="22045" name="Str_FoldAction6" role=""/>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -225,19 +245,36 @@
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Sequence Hydraulic Action Labels
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11050" language="" length="30" name="Label_UnfoldStep1" options="" value="1. Unlatch Wings &amp; Wing Tilt" vertical_justification="middle" width="440" x="20" y="115"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11051" language="" length="30" name="Label_UnfoldStep2" options="" value="2. Lower Planter" vertical_justification="middle" width="440" x="20" y="155"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11052" language="" length="30" name="Label_UnfoldStep3" options="" value="3. Unfold Wings" vertical_justification="middle" width="440" x="20" y="195"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11053" language="" length="30" name="Label_UnfoldStep4" options="" value="4. Unlatch Transport Hooks" vertical_justification="middle" width="440" x="20" y="235"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11054" language="" length="30" name="Label_UnfoldStep5" options="" value="5. Rotate Bar" vertical_justification="middle" width="440" x="20" y="275"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11055" language="" length="30" name="Label_UnfoldStep6" options="" value="6. Extend Tongue" vertical_justification="middle" width="440" x="20" y="315"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11050" language="" length="30" name="Label_UnfoldStep1" options="" value="1. Unlatch Wings &amp; Wing Tilt" vertical_justification="middle" width="295" x="20" y="115"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11051" language="" length="30" name="Label_UnfoldStep2" options="" value="2. Lower Planter" vertical_justification="middle" width="295" x="20" y="155"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11052" language="" length="30" name="Label_UnfoldStep3" options="" value="3. Unfold Wings" vertical_justification="middle" width="295" x="20" y="195"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11053" language="" length="30" name="Label_UnfoldStep4" options="" value="4. Unlatch Transport Hooks" vertical_justification="middle" width="295" x="20" y="235"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11054" language="" length="30" name="Label_UnfoldStep5" options="" value="5. Rotate Bar" vertical_justification="middle" width="295" x="20" y="275"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11055" language="" length="30" name="Label_UnfoldStep6" options="" value="6. Extend Tongue" vertical_justification="middle" width="295" x="20" y="315"/>
 
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11060" language="" length="30" name="Label_FoldStep1" options="" value="1. Retract Tongue" vertical_justification="middle" width="440" x="20" y="115"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11061" language="" length="30" name="Label_FoldStep2" options="" value="2. Rotate Bar" vertical_justification="middle" width="440" x="20" y="155"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11062" language="" length="30" name="Label_FoldStep3" options="" value="3. Latch Transport Hooks" vertical_justification="middle" width="440" x="20" y="195"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11063" language="" length="30" name="Label_FoldStep4" options="" value="4. Fold Wings" vertical_justification="middle" width="440" x="20" y="235"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11064" language="" length="30" name="Label_FoldStep5" options="" value="5. Raise Planter" vertical_justification="middle" width="440" x="20" y="275"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11065" language="" length="30" name="Label_FoldStep6" options="" value="6. Latch Wings &amp; Center Bar" vertical_justification="middle" width="440" x="20" y="315"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11060" language="" length="30" name="Label_FoldStep1" options="" value="1. Retract Tongue" vertical_justification="middle" width="295" x="20" y="115"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11061" language="" length="30" name="Label_FoldStep2" options="" value="2. Rotate Bar" vertical_justification="middle" width="295" x="20" y="155"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11062" language="" length="30" name="Label_FoldStep3" options="" value="3. Latch Transport Hooks" vertical_justification="middle" width="295" x="20" y="195"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11063" language="" length="30" name="Label_FoldStep4" options="" value="4. Fold Wings" vertical_justification="middle" width="295" x="20" y="235"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11064" language="" length="30" name="Label_FoldStep5" options="" value="5. Raise Planter" vertical_justification="middle" width="295" x="20" y="275"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11065" language="" length="30" name="Label_FoldStep6" options="" value="6. Latch Wings &amp; Center Bar" vertical_justification="middle" width="295" x="20" y="315"/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       OUTPUT STRINGS - Sequence Hydraulic Action Button Text
+  ═══════════════════════════════════════════════════════════ -->
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22030" language="" length="10" name="Str_UnfoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22031" language="" length="10" name="Str_UnfoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22032" language="" length="10" name="Str_UnfoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22033" language="" length="10" name="Str_UnfoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22034" language="" length="10" name="Str_UnfoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22035" language="" length="10" name="Str_UnfoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22040" language="" length="10" name="Str_FoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22041" language="" length="10" name="Str_FoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22042" language="" length="10" name="Str_FoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22043" language="" length="10" name="Str_FoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22044" language="" length="10" name="Str_FoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22045" language="" length="10" name="Str_FoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        VARIABLE STRINGS - Dynamic Runtime Text
@@ -334,11 +371,14 @@
     <include_object id="11053" name="Label_UnfoldStep4" role=""/>
     <include_object id="11054" name="Label_UnfoldStep5" role=""/>
     <include_object id="11055" name="Label_UnfoldStep6" role=""/>
+    <!-- Six Hydraulic Action Buttons -->
+    <include_object id="6020" name="Btn_UnfoldAction1" role=""/>
+    <include_object id="6021" name="Btn_UnfoldAction2" role=""/>
+    <include_object id="6022" name="Btn_UnfoldAction3" role=""/>
+    <include_object id="6023" name="Btn_UnfoldAction4" role=""/>
+    <include_object id="6024" name="Btn_UnfoldAction5" role=""/>
+    <include_object id="6025" name="Btn_UnfoldAction6" role=""/>
     <include_object id="7003" name="Divider_Fold" role=""/>
-    <!-- Sequence Controls -->
-    <include_object id="6021" name="Btn_UnfoldPrev" role=""/>
-    <include_object id="6020" name="Btn_UnfoldNext" role=""/>
-    <include_object id="6022" name="Btn_UnfoldCancel" role=""/>
   </datamask>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -360,11 +400,14 @@
     <include_object id="11063" name="Label_FoldStep4" role=""/>
     <include_object id="11064" name="Label_FoldStep5" role=""/>
     <include_object id="11065" name="Label_FoldStep6" role=""/>
+    <!-- Six Hydraulic Action Buttons -->
+    <include_object id="6010" name="Btn_FoldAction1" role=""/>
+    <include_object id="6011" name="Btn_FoldAction2" role=""/>
+    <include_object id="6012" name="Btn_FoldAction3" role=""/>
+    <include_object id="6013" name="Btn_FoldAction4" role=""/>
+    <include_object id="6014" name="Btn_FoldAction5" role=""/>
+    <include_object id="6015" name="Btn_FoldAction6" role=""/>
     <include_object id="7003" name="Divider_Fold" role=""/>
-    <!-- Sequence Controls -->
-    <include_object id="6011" name="Btn_FoldPrev" role=""/>
-    <include_object id="6010" name="Btn_FoldNext" role=""/>
-    <include_object id="6012" name="Btn_FoldCancel" role=""/>
   </datamask>
 
   <!-- ═══════════════════════════════════════════════════════════

@@ -236,6 +236,43 @@ void fold_sequence_cancel()
     currentStep = 0;
 }
 
+void fold_sequence_activate_fold_action(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > FOLD_STEPS)
+    {
+        fold_sequence_cancel();
+        return;
+    }
+    // De-energize all outputs first to guarantee mutual exclusion
+    fold_sequence_all_off();
+    currentState = SequenceState::FOLD_ACTIVE;
+    currentStep = actionIndex - 1;
+    apply_solenoid_states(FOLD_STATES[currentStep]);
+}
+
+void fold_sequence_activate_unfold_action(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > UNFOLD_STEPS)
+    {
+        fold_sequence_cancel();
+        return;
+    }
+    // De-energize all outputs first to guarantee mutual exclusion
+    fold_sequence_all_off();
+    currentState = SequenceState::UNFOLD_ACTIVE;
+    currentStep = actionIndex - 1;
+    apply_solenoid_states(UNFOLD_STATES[currentStep]);
+}
+
+uint8_t fold_sequence_get_active_action()
+{
+    if (currentState == SequenceState::FOLD_ACTIVE || currentState == SequenceState::UNFOLD_ACTIVE)
+    {
+        return currentStep + 1;
+    }
+    return 0;
+}
+
 void fold_sequence_apply_current_step()
 {
     if (currentState == SequenceState::FOLD_ACTIVE)
