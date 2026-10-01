@@ -21,17 +21,17 @@
 #define PWM_MAX_DUTY         204   // 80% maximum duty cycle
 
 // ─── FAN RPM LIMITS ───────────────────────────────────────────────────────────
-#define FAN_RPM_MIN          500   // Minimum target RPM
-#define FAN_RPM_MAX          3000  // Maximum target RPM
+#define FAN_RPM_MIN          1000  // Minimum target RPM
+#define FAN_RPM_MAX          4500  // Maximum target RPM
 #define FAN_RPM_STEP         50    // RPM increment per button press
-#define FAN_RPM_DEFAULT      1500  // Default target RPM on startup
+#define FAN_RPM_DEFAULT      3200  // Default target RPM on startup
 
 // ─── VAC PRESSURE LIMITS ──────────────────────────────────────────────────────
-// Units in tenths of inHg (e.g. 45 = 4.5 inHg)
-#define VAC_PRESSURE_MIN     10    // Minimum target pressure
-#define VAC_PRESSURE_MAX     100   // Maximum target pressure
-#define VAC_PRESSURE_STEP    5     // Pressure increment per button press
-#define VAC_PRESSURE_DEFAULT 45    // Default target pressure on startup
+// Units in in H2O
+#define VAC_PRESSURE_MIN     5     // Minimum target pressure
+#define VAC_PRESSURE_MAX     40    // Maximum target pressure
+#define VAC_PRESSURE_STEP    1     // Pressure increment per button press
+#define VAC_PRESSURE_DEFAULT 22    // Default target pressure on startup
 
 // ─── PID TUNING CONSTANTS ─────────────────────────────────────────────────────
 // These will need tuning during real world testing at the planter
@@ -133,6 +133,16 @@ void fan_vac_vac_pressure_up();
 
 // Decrease vac pressure target by VAC_PRESSURE_STEP
 void fan_vac_vac_pressure_down();
+
+// Toggle Fan power on/off
+void fan_vac_toggle_fan_power();
+
+// Toggle Vac power on/off
+void fan_vac_toggle_vac_power();
+
+// Get power states
+bool fan_vac_is_fan_on();
+bool fan_vac_is_vac_on();
 
 // Set fan RPM target directly
 void fan_vac_set_fan_target(uint16_t targetRPM);

@@ -32,28 +32,30 @@
 
 // ─── SEQUENCE DEFINITIONS ────────────────────────────────────────────────────
 // Number of steps in each sequence
-#define FOLD_STEPS      5
-#define UNFOLD_STEPS    5
+#define FOLD_STEPS      6
+#define UNFOLD_STEPS    6
 
 // ─── SOLENOID STATE ARRAYS ───────────────────────────────────────────────────
 // Each row = one step in the sequence
 // Each column = solenoid 1-18 state (true = 12V, false = 0V)
 // Index 0 = solenoid 1, Index 17 = solenoid 18
 
-// FOLD sequence solenoid states
-// Step 1 - Inner Marker BACK
-// Step 2 - Extend Tongue BACK
-// Step 3 - Set Tongue Lock FLOAT
-// Step 4 - Rotate Bar FORWARD
-// Step 5 - Set Rotate Lock FORWARD
+// FOLD sequence solenoid states (6 steps)
+// Step 1 - Retract Tongue
+// Step 2 - Rotate Bar
+// Step 3 - Latch Transport Hooks
+// Step 4 - Fold Wings
+// Step 5 - Raise Planter
+// Step 6 - Latch Wings & Center Bar
 extern const bool FOLD_STATES[FOLD_STEPS][SOLENOID_COUNT];
 
-// UNFOLD sequence solenoid states
-// Step 1 - Rotate Bar BACK
-// Step 2 - Set Rotate Lock BACK
-// Step 3 - Retract Tongue FORWARD
-// Step 4 - Set Tongue Lock FORWARD
-// Step 5 - Inner Marker FORWARD
+// UNFOLD sequence solenoid states (6 steps)
+// Step 1 - Unlatch Wings & Wing Tilt
+// Step 2 - Lower Planter
+// Step 3 - Unfold Wings
+// Step 4 - Unlatch Transport Hooks
+// Step 5 - Rotate Bar
+// Step 6 - Extend Tongue
 extern const bool UNFOLD_STATES[UNFOLD_STEPS][SOLENOID_COUNT];
 
 // ─── STEP INSTRUCTIONS ───────────────────────────────────────────────────────
