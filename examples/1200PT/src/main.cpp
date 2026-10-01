@@ -12,7 +12,6 @@
 #include "console_logger.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/timers.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_log.h"
@@ -22,9 +21,11 @@
 #include "plant_control.h"
 #include "fan_vac_control.h"
 
+#include <atomic>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
 
 // ─── ISOBUS CLIENT INSTANCES ───────────────────────────────────────────
 static std::shared_ptr<isobus::VirtualTerminalClient> virtualTerminalClient = nullptr;
@@ -47,9 +48,6 @@ namespace
     constexpr std::uint8_t MCP2515_250K_8MHZ_CNF3 = 0x83;
 }
 
-// ─── PID UPDATE TIMER ────────────────────────────────────────────────────────────────
-static TimerHandle_t pidUpdateTimer = nullptr;
-
 // ─── SCREEN TRACKING ─────────────────────────────────────────────────────────────────
 // Tracks which screen is currently active on InCommand
 enum class ActiveScreen
@@ -60,6 +58,7 @@ enum class ActiveScreen
     CAL
 };
 static ActiveScreen currentScreen = ActiveScreen::RUN;
+static std::atomic<bool> hydraulicActuationInhibited{true};
 
 // ─── MARKER TRACKING ─────────────────────────────────────────────────────────────────
 enum class MarkerState
@@ -83,15 +82,6 @@ void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event)
 void reset_action_buttons();
 void handle_unfold_action_button(uint8_t actionIndex);
 void handle_fold_action_button(uint8_t actionIndex);
-
-// ─── PID TIMER CALLBACK ─────────────────────────────────────────────────────────────
-// Called every PID_UPDATE_INTERVAL milliseconds
-// Updates fan and vac PID loops and refreshes display values
-static void pid_timer_callback(TimerHandle_t xTimer)
-{
-    fan_vac_update();
-    update_display_values();
-}
 
 // ─── DISPLAY UPDATE FUNCTION ──────────────────────────────────────────────────────────
 // Pushes current sensor values and status to InCommand display
@@ -214,6 +204,7 @@ void reset_action_buttons()
 void handle_unfold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
+    if (hydraulicActuationInhibited.load()) return;
 
     if (activeFoldAction != 0)
     {
@@ -278,6 +269,7 @@ void handle_unfold_action_button(uint8_t actionIndex)
 void handle_fold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
+    if (hydraulicActuationInhibited.load()) return;
 
     if (activeUnfoldAction != 0)
     {
@@ -776,11 +768,19 @@ extern "C" void app_main()
         partnerVT,
         internalECU
     );
+    const std::size_t objectPoolSize = static_cast<std::size_t>(object_pool_end - object_pool_start);
+    std::string objectPoolVersion = isobus::IOPFileInterface::hash_object_pool_to_version(
+        object_pool_start,
+        objectPoolSize
+    );
+    objectPoolVersion.resize(7, '0');
+    ESP_LOGI(TAG, "Embedded VT object pool: version=%s, size=%u bytes",
+             objectPoolVersion.c_str(), static_cast<unsigned int>(objectPoolSize));
     virtualTerminalClient->set_object_pool(
         0,
         object_pool_start,
-        (object_pool_end - object_pool_start),
-        "1200"   // Pool designator - change this if you update the pool
+        static_cast<std::uint32_t>(objectPoolSize),
+        objectPoolVersion
     );
     virtualTerminalClient->get_vt_soft_key_event_dispatcher()
                           .add_listener(handle_softkey_event);
@@ -812,33 +812,28 @@ extern "C" void app_main()
     fan_vac_init();         // Initialize PWM, RPM sensor, ADC, PID controllers
     fan_vac_start();        // Start fan and vac control loops
 
-    // ── PID UPDATE TIMER ────────────────────────────────────────────────────────────────
-    // Fires every PID_UPDATE_INTERVAL ms to update fan and vac control
-    pidUpdateTimer = xTimerCreate(
-        "PIDTimer",
-        pdMS_TO_TICKS(PID_UPDATE_INTERVAL),
-        pdTRUE,         // Auto reload
-        nullptr,
-        pid_timer_callback
-    );
-    if (pidUpdateTimer != nullptr)
-    {
-        xTimerStart(pidUpdateTimer, 0);
-    }
-
+    // ── PERIODIC CONTROL UPDATE ─────────────────────────────────────────────────────────
     ESP_LOGI("ISO1200PT", "System initialized successfully");
 
     // ── MAIN LOOP ─────────────────────��────────────────────────────────────────
-    // ISOBUS stack runs in background threads
-    // S bin sensor polled here in main loop
+    // Periodic control and VT updates run here, not on the FreeRTOS timer service task.
     while (true)
     {
+        fan_vac_update();
+        const bool hydraulicControlAvailable = fan_vac_get_state() == FanVacState::RUNNING;
+        const bool wasActuationInhibited = hydraulicActuationInhibited.exchange(!hydraulicControlAvailable);
+        if (!hydraulicControlAvailable && !wasActuationInhibited)
+        {
+            fold_sequence_cancel();
+            reset_action_buttons();
+        }
+        update_display_values();
+
         // Read S bin sensor and update plant control
         bool sBinEmpty = gpio_get_level((gpio_num_t)PIN_SBIN_SENSOR) == 0;
         plant_control_update_sbin(sBinEmpty);
 
-        // Small delay - ISOBUS stack handles its own timing
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(PID_UPDATE_INTERVAL));
     }
 
     // ── CLEANUP (never reached in normal operation) ───────────────────────────
