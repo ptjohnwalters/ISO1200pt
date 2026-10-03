@@ -22,54 +22,60 @@
 #define I2C_CLK_SPEED_HZ    100000
 
 // ─── FOLD SEQUENCE SOLENOID STATES ───────────────────────────────────────────
-// Rows = steps 1-5
+// Rows = steps 1-6
 // Columns = solenoids 1-18 (index 0 = solenoid 1)
 // true = 12V energized, false = 0V de-energized
 
 //                        Sol: 1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18
 const bool FOLD_STATES[FOLD_STEPS][SOLENOID_COUNT] = {
-    // Step 1 - Inner Marker BACK
-                             { true,  false, true,  false, false, false, true,  false, false, false, false, true,  false, false, false, true,  true,  true  },
-    // Step 2 - Extend Tongue BACK
-                             { true,  false, true,  false, true,  false, true,  false, true,  true,  false, true,  false, true,  false, true,  true,  true  },
-    // Step 3 - Set Tongue Lock FLOAT
+    // Step 1 - Retract Tongue
                              { true,  false, true,  false, false, false, true,  false, false, true,  true,  true,  false, true,  false, true,  true,  true  },
-    // Step 4 - Rotate Bar FORWARD
+    // Step 2 - Rotate Bar
+                             { true,  false, true,  false, true,  false, true,  false, true,  true,  false, true,  false, true,  false, true,  true,  true  },
+    // Step 3 - Latch Transport Hooks
+                             { true,  false, true,  false, false, false, true,  false, false, false, false, true,  false, false, false, true,  true,  true  },
+    // Step 4 - Fold Wings
                              { true,  false, true,  false, true,  false, true,  false, false, true,  false, true,  false, true,  false, true,  true,  true  },
-    // Step 5 - Set Rotate Lock FORWARD
+    // Step 5 - Raise Planter
                              { true,  false, true,  false, true,  false, true,  false, false, true,  false, true,  false, true,  false, true,  true,  true  },
+    // Step 6 - Latch Wings & Center Bar
+                             { true,  false, true,  false, false, false, true,  false, false, true,  false, true,  false, true,  false, true,  true,  true  },
 };
 
 // ─── UNFOLD SEQUENCE SOLENOID STATES ─────────────────────────────────────────
 //                        Sol: 1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18
 const bool UNFOLD_STATES[UNFOLD_STEPS][SOLENOID_COUNT] = {
-    // Step 1 - Rotate Bar BACK
+    // Step 1 - Unlatch Wings & Wing Tilt
                              { true,  false, true,  false, true,  true,  true,  true,  true,  false, false, true,  false, false, false, true,  true,  true  },
-    // Step 2 - Set Rotate Lock BACK
+    // Step 2 - Lower Planter
                              { true,  false, true,  false, true,  false, true,  false, true,  true,  false, true,  false, true,  false, true,  true,  true  },
-    // Step 3 - Retract Tongue FORWARD
+    // Step 3 - Unfold Wings
                              { true,  false, true,  false, false, false, true,  false, false, true,  true,  true,  false, true,  false, true,  true,  true  },
-    // Step 4 - Set Tongue Lock FORWARD
+    // Step 4 - Unlatch Transport Hooks
                              { true,  false, true,  false, false, false, true,  false, false, true,  false, true,  false, true,  false, true,  true,  true  },
-    // Step 5 - Inner Marker FORWARD
+    // Step 5 - Rotate Bar
                              { true,  false, true,  false, true,  false, true,  false, false, false, false, true,  false, false, false, true,  true,  true  },
+    // Step 6 - Extend Tongue
+                             { true,  false, true,  false, true,  false, true,  false, true,  true,  false, true,  false, true,  false, true,  true,  true  },
 };
 
 // ─── STEP INSTRUCTION TEXT ───────────────────────────────────────────────────
 const char* FOLD_INSTRUCTIONS[FOLD_STEPS] = {
-    "STEP 1: Move Inner Marker BACK",
-    "STEP 2: Extend Tongue BACK",
-    "STEP 3: Set Tongue Lock FLOAT",
-    "STEP 4: Rotate Bar FORWARD",
-    "STEP 5: Set Rotate Lock FORWARD"
+    "1. Retract Tongue",
+    "2. Rotate Bar",
+    "3. Latch Transport Hooks",
+    "4. Fold Wings",
+    "5. Raise Planter",
+    "6. Latch Wings & Center Bar"
 };
 
 const char* UNFOLD_INSTRUCTIONS[UNFOLD_STEPS] = {
-    "STEP 1: Rotate Bar BACK",
-    "STEP 2: Set Rotate Lock BACK",
-    "STEP 3: Retract Tongue FORWARD",
-    "STEP 4: Set Tongue Lock FORWARD",
-    "STEP 5: Move Inner Marker FORWARD"
+    "1. Unlatch Wings & Wing Tilt",
+    "2. Lower Planter",
+    "3. Unfold Wings",
+    "4. Unlatch Transport Hooks",
+    "5. Rotate Bar",
+    "6. Extend Tongue"
 };
 
 // ─── MODULE STATE VARIABLES ───────────────────────────────────────────────────
@@ -228,6 +234,43 @@ void fold_sequence_cancel()
     fold_sequence_all_off();
     currentState = SequenceState::IDLE;
     currentStep = 0;
+}
+
+void fold_sequence_activate_fold_action(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > FOLD_STEPS)
+    {
+        fold_sequence_cancel();
+        return;
+    }
+    // De-energize all outputs first to guarantee mutual exclusion
+    fold_sequence_all_off();
+    currentState = SequenceState::FOLD_ACTIVE;
+    currentStep = actionIndex - 1;
+    apply_solenoid_states(FOLD_STATES[currentStep]);
+}
+
+void fold_sequence_activate_unfold_action(uint8_t actionIndex)
+{
+    if (actionIndex < 1 || actionIndex > UNFOLD_STEPS)
+    {
+        fold_sequence_cancel();
+        return;
+    }
+    // De-energize all outputs first to guarantee mutual exclusion
+    fold_sequence_all_off();
+    currentState = SequenceState::UNFOLD_ACTIVE;
+    currentStep = actionIndex - 1;
+    apply_solenoid_states(UNFOLD_STATES[currentStep]);
+}
+
+uint8_t fold_sequence_get_active_action()
+{
+    if (currentState == SequenceState::FOLD_ACTIVE || currentState == SequenceState::UNFOLD_ACTIVE)
+    {
+        return currentStep + 1;
+    }
+    return 0;
 }
 
 void fold_sequence_apply_current_step()
