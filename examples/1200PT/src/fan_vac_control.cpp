@@ -25,6 +25,9 @@ static uint32_t fanPulseCount = 0;
 static uint32_t lastRPMCalculationTime = 0;
 static uint16_t calculatedFanRPM = 0;
 
+static bool fanPowerEnabled = true;
+static bool vacPowerEnabled = true;
+
 // ─── MODULE STATE ────────────────────────────────────────────────────────────
 static FanVacStatus currentStatus = {
     FAN_RPM_DEFAULT,        // fanRPMTarget
@@ -252,6 +255,36 @@ void fan_vac_vac_pressure_down()
     currentStatus.vacPressureTarget = newTarget;
 }
 
+void fan_vac_toggle_fan_power()
+{
+    fanPowerEnabled = !fanPowerEnabled;
+    if (!fanPowerEnabled)
+    {
+        set_fan_pwm(0);
+        pid_reset(fanPID);
+    }
+}
+
+void fan_vac_toggle_vac_power()
+{
+    vacPowerEnabled = !vacPowerEnabled;
+    if (!vacPowerEnabled)
+    {
+        set_vac_pwm(0);
+        pid_reset(vacPID);
+    }
+}
+
+bool fan_vac_is_fan_on()
+{
+    return fanPowerEnabled;
+}
+
+bool fan_vac_is_vac_on()
+{
+    return vacPowerEnabled;
+}
+
 void fan_vac_set_fan_target(uint16_t targetRPM)
 {
     if (targetRPM < FAN_RPM_MIN) targetRPM = FAN_RPM_MIN;
@@ -321,29 +354,40 @@ void fan_vac_update()
     uint16_t actualPressure = fan_vac_read_pressure();
 
     // Compute fan PID
-    float fanOutput = pid_compute(
-        fanPID,
-        (float)currentStatus.fanRPMTarget,
-        (float)actualRPM
-    );
-    set_fan_pwm((uint8_t)fanOutput);
+    if (fanPowerEnabled)
+    {
+        float fanOutput = pid_compute(
+            fanPID,
+            (float)currentStatus.fanRPMTarget,
+            (float)actualRPM
+        );
+        set_fan_pwm((uint8_t)fanOutput);
+        uint16_t fanFaultThreshold = currentStatus.fanRPMTarget * 0.8f;
+        currentStatus.fanFault = (actualRPM < fanFaultThreshold);
+    }
+    else
+    {
+        set_fan_pwm(0);
+        currentStatus.fanFault = false;
+    }
 
     // Compute vac PID
-    float vacOutput = pid_compute(
-        vacPID,
-        (float)currentStatus.vacPressureTarget,
-        (float)actualPressure
-    );
-    set_vac_pwm((uint8_t)vacOutput);
-
-    // Check for faults
-    // Fan fault if actual RPM is more than 20% below target
-    uint16_t fanFaultThreshold = currentStatus.fanRPMTarget * 0.8f;
-    currentStatus.fanFault = (actualRPM < fanFaultThreshold);
-
-    // Vac fault if actual pressure is more than 20% below target
-    uint16_t vacFaultThreshold = currentStatus.vacPressureTarget * 0.8f;
-    currentStatus.vacFault = (actualPressure < vacFaultThreshold);
+    if (vacPowerEnabled)
+    {
+        float vacOutput = pid_compute(
+            vacPID,
+            (float)currentStatus.vacPressureTarget,
+            (float)actualPressure
+        );
+        set_vac_pwm((uint8_t)vacOutput);
+        uint16_t vacFaultThreshold = currentStatus.vacPressureTarget * 0.8f;
+        currentStatus.vacFault = (actualPressure < vacFaultThreshold);
+    }
+    else
+    {
+        set_vac_pwm(0);
+        currentStatus.vacFault = false;
+    }
 
     // Update overall state if faults detected
     if (currentStatus.fanFault)
