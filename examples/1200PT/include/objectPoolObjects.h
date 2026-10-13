@@ -82,9 +82,10 @@
 #define Button_MarkerNext            6062   // Marker cycle next
 
 // ─── CALIBRATION BUTTONS ─────────────────────────────────────────────────────
-#define Button_CalSetTransport       6070   // Store current position as transport limit
-#define Button_CalSetPlant           6071   // Store current position as plant limit
-#define Button_CalZero               6072   // Zero calibration sensor
+#define Button_CalSetFullRaise       6070
+#define Button_CalSetLimitedRaise    6071
+#define Button_CalSetStartPlant      6072
+#define Button_CalSetStopPlant       6073
 
 // ─── DIVIDERS ────────────────────────────────────────────────────────────────
 #define Divider_Top                  7000
@@ -106,10 +107,10 @@
 #define OutStr_VacUnit               11009  // "in H2O"
 #define OutStr_FanUnit               11010  // "RPM"
 #define OutStr_FramePos              11011  // "FRAME POSITION:"
-#define OutStr_SavedMarks            11012  // "SAVED CALIBRATION MARKS:"
-#define OutStr_TransportLimit        11013  // "TRANSPORT (UP):"
-#define OutStr_PlantLimit            11014  // "PLANT (DOWN):"
-#define OutStr_SensorRaw             11015  // "SENSOR RAW ADC:"
+#define OutStr_CalFullRaise          11012
+#define OutStr_CalLimitedRaise       11013
+#define OutStr_CalStartPlant         11014
+#define OutStr_CalStopPlant          11015
 #define OutStr_Diagnostics           11016  // "SYSTEM STATUS & FAULTS:"
 #define OutStr_CalPercent            11017  // "%"
 #define OutStr_FanActualUnit         11018  // "RPM"
@@ -136,14 +137,17 @@
 #define OutStr_BtnPrev               11035  // "PREV"
 #define OutStr_BtnCancel             11036  // "CANCEL"
 #define OutStr_BtnNextStep           11037  // "NEXT STEP"
-#define OutStr_BtnSetHigh            11038  // "SET TRANSPORT"
-#define OutStr_BtnSetLow             11039  // "SET PLANT"
-#define OutStr_BtnZero               11040  // "ZERO SENSOR"
+#define OutStr_BtnSetFullRaise       11038  // "SET"
+#define OutStr_BtnSetLimitedRaise    11039  // "SET"
+#define OutStr_BtnSetStartPlant      11040  // "SET"
 #define OutStr_BtnLimitedLift        11041  // "LIMITED LIFT"
 #define OutStr_BtnFullLift           11042  // "FULL LIFT"
 #define OutStr_BtnLower              11043  // "LOWER"
-#define OutStr_TransPercent          11048  // "%"
-#define OutStr_PlantPercent          11049  // "%"
+#define OutStr_CalFullRaisePercent   11048  // "%"
+#define OutStr_CalLimitedPercent     11049  // "%"
+#define OutStr_CalStartPlantPercent  11066  // "%"
+#define OutStr_CalStopPlantPercent   11067  // "%"
+#define OutStr_BtnSetStopPlant       11068  // "SET"
 
 // ─── SOFTKEY LABELS ──────────────────────────────────────────────────────────
 #define OutStr_SKRun                 11044  // "RUN"
@@ -203,9 +207,10 @@
 #define VarNum_VacTarget             21004  // Operator set vac pressure target
 #define VarNum_VacActual             21005  // Live vac pressure reading
 #define VarNum_CalPosition           21010  // Live frame position percentage (0-100)
-#define VarNum_CalTransportLimit     21011  // Saved transport limit mark
-#define VarNum_CalPlantLimit         21012  // Saved plant limit mark
-#define VarNum_CalSensorRaw          21013  // Live sensor raw ADC counts
+#define VarNum_CalFullRaise          21011
+#define VarNum_CalLimitedRaise       21012
+#define VarNum_CalStartPlant         21014
+#define VarNum_CalStopPlant          21015
 
 // ─── FONT ATTRIBUTES ─────────────────────────────────────────────────────────
 #define FontAttr_Small               23000  // Small black text (16x16)
@@ -214,6 +219,9 @@
 #define FontAttr_Small_White         23003  // Small white text (16x16)
 #define FontAttr_Medium_White        23004  // Medium white text (24x32)
 #define FontAttr_Large_White         23005  // Large white text (32x48)
+#define FontAttr_Small_Green         23006
+#define FontAttr_Small_Teal          23007
+#define FontAttr_Small_Olive         23008
 
 // ─── LINE AND FILL ATTRIBUTES ────────────────────────────────────────────────
 #define LineAttr_Black               24000  // Black border line
