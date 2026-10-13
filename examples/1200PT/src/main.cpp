@@ -28,6 +28,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 
 // ─── ISOBUS CLIENT INSTANCES ───────────────────────────────────────────
@@ -77,14 +78,15 @@ static constexpr uint32_t CAL_FULL_RAISE_DEFAULT = 95;
 static constexpr uint32_t CAL_LIMITED_RAISE_DEFAULT = 75;
 static constexpr uint32_t CAL_START_PLANT_DEFAULT = 15;
 static constexpr uint32_t CAL_STOP_PLANT_DEFAULT = 0;
-static uint32_t calPosition = 50;
-static uint32_t calFullRaise = CAL_FULL_RAISE_DEFAULT;
-static uint32_t calLimitedRaise = CAL_LIMITED_RAISE_DEFAULT;
-static uint32_t calStartPlant = CAL_START_PLANT_DEFAULT;
-static uint32_t calStopPlant = CAL_STOP_PLANT_DEFAULT;
+static std::atomic<uint32_t> calPosition{50};
+static std::atomic<uint32_t> calFullRaise{CAL_FULL_RAISE_DEFAULT};
+static std::atomic<uint32_t> calLimitedRaise{CAL_LIMITED_RAISE_DEFAULT};
+static std::atomic<uint32_t> calStartPlant{CAL_START_PLANT_DEFAULT};
+static std::atomic<uint32_t> calStopPlant{CAL_STOP_PLANT_DEFAULT};
 static nvs_handle_t calibrationNvsHandle = 0;
 static bool calibrationNvsReady = false;
-static std::atomic<int64_t> calStatusClearAtUs{0};
+static std::mutex calStatusMutex;
+static int64_t calStatusClearAtUs = 0;
 
 // ─── FORWARD DECLARATIONS ──────────────────────────────────────────────────────────────
 void update_display_values();
@@ -133,23 +135,21 @@ static void initialize_calibration_storage()
     }
 
     calibrationNvsReady = true;
-    calFullRaise = load_calibration_value("full_raise", CAL_FULL_RAISE_DEFAULT);
-    calLimitedRaise = load_calibration_value("limited_raise", CAL_LIMITED_RAISE_DEFAULT);
-    calStartPlant = load_calibration_value("start_plant", CAL_START_PLANT_DEFAULT);
-    calStopPlant = load_calibration_value("stop_plant", CAL_STOP_PLANT_DEFAULT);
-    if (calStopPlant > calStartPlant)
+    calFullRaise.store(load_calibration_value("full_raise", CAL_FULL_RAISE_DEFAULT));
+    calLimitedRaise.store(load_calibration_value("limited_raise", CAL_LIMITED_RAISE_DEFAULT));
+    calStartPlant.store(load_calibration_value("start_plant", CAL_START_PLANT_DEFAULT));
+    calStopPlant.store(load_calibration_value("stop_plant", CAL_STOP_PLANT_DEFAULT));
+    if (calStopPlant.load() > calStartPlant.load())
     {
-        calStartPlant = CAL_START_PLANT_DEFAULT;
-        calStopPlant = CAL_STOP_PLANT_DEFAULT;
+        calStartPlant.store(CAL_START_PLANT_DEFAULT);
+        calStopPlant.store(CAL_STOP_PLANT_DEFAULT);
     }
 }
 
 static void set_calibration_status(const char *message, bool transient)
 {
-    calStatusClearAtUs.store(
-        transient ? esp_timer_get_time() + 3000000 : 0,
-        std::memory_order_relaxed
-    );
+    std::lock_guard<std::mutex> lock(calStatusMutex);
+    calStatusClearAtUs = transient ? esp_timer_get_time() + 3000000 : 0;
     if (virtualTerminalClient != nullptr)
     {
         virtualTerminalClient->send_change_string_value(VarStr_CalFaultMessage, message);
@@ -184,20 +184,21 @@ static bool persist_calibration_value(const char *key, uint32_t value, uint32_t 
 
 static void save_calibration_point(
     const char *key,
-    uint32_t &savedValue,
-    uint16_t objectId
+    std::atomic<uint32_t> &savedValue,
+    uint16_t objectId,
+    uint32_t newValue
 )
 {
-    const uint32_t newValue = calPosition;
-    if (!persist_calibration_value(key, newValue, savedValue))
+    const uint32_t previousValue = savedValue.load();
+    if (!persist_calibration_value(key, newValue, previousValue))
     {
         set_calibration_status("CALIBRATION SAVE FAILED", true);
         return;
     }
-    savedValue = newValue;
+    savedValue.store(newValue);
     if (virtualTerminalUpdateHelper != nullptr)
     {
-        virtualTerminalUpdateHelper->set_numeric_value(objectId, savedValue);
+        virtualTerminalUpdateHelper->set_numeric_value(objectId, newValue);
     }
     set_calibration_status("STATUS: OK - NO ACTIVE FAULTS", false);
 }
@@ -208,11 +209,19 @@ void update_display_values()
 {
     if (virtualTerminalUpdateHelper == nullptr) return;
 
-    int64_t clearAt = calStatusClearAtUs.load(std::memory_order_relaxed);
-    if ((clearAt > 0) && (esp_timer_get_time() >= clearAt)
-        && calStatusClearAtUs.compare_exchange_strong(clearAt, 0, std::memory_order_relaxed))
     {
-        set_calibration_status("STATUS: OK - NO ACTIVE FAULTS", false);
+        std::lock_guard<std::mutex> lock(calStatusMutex);
+        if ((calStatusClearAtUs > 0) && (esp_timer_get_time() >= calStatusClearAtUs))
+        {
+            calStatusClearAtUs = 0;
+            if (virtualTerminalClient != nullptr)
+            {
+                virtualTerminalClient->send_change_string_value(
+                    VarStr_CalFaultMessage,
+                    "STATUS: OK - NO ACTIVE FAULTS"
+                );
+            }
+        }
     }
 
     FanVacStatus fanVacStatus = fan_vac_get_status();
@@ -249,8 +258,9 @@ void update_display_values()
             VarNum_FoldStep,
             step
         );
-        calPosition = 15 + ((step * 80) / FOLD_STEPS);
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
+        const uint32_t position = 15 + ((step * 80) / FOLD_STEPS);
+        calPosition.store(position);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, position);
     }
     else if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
     {
@@ -259,18 +269,20 @@ void update_display_values()
             VarNum_UnfoldStep,
             step
         );
-        calPosition = 95 - ((step * 80) / UNFOLD_STEPS);
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
+        const uint32_t position = 95 - ((step * 80) / UNFOLD_STEPS);
+        calPosition.store(position);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, position);
     }
 
     if (virtualTerminalClient != nullptr)
     {
         const char *stateStr = "MID RANGE";
-        if (calPosition >= calFullRaise - 5)
+        const uint32_t position = calPosition.load();
+        if (position + 5 >= calFullRaise.load())
         {
             stateStr = "TRANSPORT RANGE";
         }
-        else if (calPosition <= calStartPlant + 5)
+        else if (position <= calStartPlant.load() + 5)
         {
             stateStr = "PLANT RANGE";
         }
@@ -724,34 +736,40 @@ void handle_button_event(
 
         // ── CALIBRATION BUTTONS ───────────────────────────────────────────────
         case Button_CalSetFullRaise:
-            save_calibration_point("full_raise", calFullRaise, VarNum_CalFullRaise);
+            save_calibration_point("full_raise", calFullRaise, VarNum_CalFullRaise, calPosition.load());
             break;
 
         case Button_CalSetLimitedRaise:
-            save_calibration_point("limited_raise", calLimitedRaise, VarNum_CalLimitedRaise);
+            save_calibration_point("limited_raise", calLimitedRaise, VarNum_CalLimitedRaise, calPosition.load());
             break;
 
         case Button_CalSetStartPlant:
-            if (calPosition < calStopPlant)
+        {
+            const uint32_t position = calPosition.load();
+            if (position < calStopPlant.load())
             {
                 set_calibration_status("START PLANT MUST BE >= STOP PLANT", true);
             }
             else
             {
-                save_calibration_point("start_plant", calStartPlant, VarNum_CalStartPlant);
+                save_calibration_point("start_plant", calStartPlant, VarNum_CalStartPlant, position);
             }
             break;
+        }
 
         case Button_CalSetStopPlant:
-            if (calPosition > calStartPlant)
+        {
+            const uint32_t position = calPosition.load();
+            if (position > calStartPlant.load())
             {
                 set_calibration_status("STOP PLANT MUST BE <= START PLANT", true);
             }
             else
             {
-                save_calibration_point("stop_plant", calStopPlant, VarNum_CalStopPlant);
+                save_calibration_point("stop_plant", calStopPlant, VarNum_CalStopPlant, position);
             }
             break;
+        }
 
         default:
             break;
@@ -925,11 +943,11 @@ extern "C" void app_main()
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMActual,      0);
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacTarget,         VAC_PRESSURE_DEFAULT);
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacActual,         0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPosition,       calPosition);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalFullRaise,      calFullRaise);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalLimitedRaise,   calLimitedRaise);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStartPlant,     calStartPlant);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStopPlant,      calStopPlant);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPosition,       calPosition.load());
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalFullRaise,      calFullRaise.load());
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalLimitedRaise,   calLimitedRaise.load());
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStartPlant,     calStartPlant.load());
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStopPlant,      calStopPlant.load());
     virtualTerminalUpdateHelper->initialize();
 
     // ── MODULE INITIALIZATION ─────────────────────────────────────────────────────
