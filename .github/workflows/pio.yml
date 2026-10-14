@@ -8,6 +8,31 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  build-1200pt:
+    name: Build 1200PT (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [esp32dev, esp32dev_debug]
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ubuntu-pio-1200pt-${{ matrix.environment }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pip"
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+      - name: Build 1200PT firmware
+        run: pio run -d examples/1200PT -e ${{ matrix.environment }}
+
   build:
     runs-on: ${{ matrix.os }}
     strategy:

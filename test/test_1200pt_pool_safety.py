@@ -138,25 +138,31 @@ class PoolSafetyTests(unittest.TestCase):
 
     def test_four_calibration_handlers_persist_and_validate_plant_order(self):
         header = POOL_HEADER.read_text()
-        for button, key, variable in (
-            ("FullRaise", "full_raise", "calFullRaise"),
-            ("LimitedRaise", "limited_raise", "calLimitedRaise"),
-            ("StartPlant", "start_plant", "calStartPlant"),
-            ("StopPlant", "stop_plant", "calStopPlant"),
+        for button, point in (
+            ("FullRaise", "FullRaise"),
+            ("LimitedRaise", "LimitedRaise"),
+            ("StartPlant", "StartPlant"),
+            ("StopPlant", "StopPlant"),
         ):
             self.assertIn(f"Button_CalSet{button}", header)
-            self.assertIn(f'save_calibration_point("{key}", {variable},', MAIN_CPP)
+            self.assertIn(
+                f"save_calibration_point(\n                calibration::Point::{point},",
+                MAIN_CPP,
+            )
 
         start_handler = MAIN_CPP.split("case Button_CalSetStartPlant:", 1)[1].split("case Button_CalSetStopPlant:", 1)[0]
         stop_handler = MAIN_CPP.split("case Button_CalSetStopPlant:", 1)[1].split("default:", 1)[0]
-        self.assertLess(start_handler.index("position < calStopPlant.load()"), start_handler.index("save_calibration_point"))
-        self.assertLess(stop_handler.index("position > calStartPlant.load()"), stop_handler.index("save_calibration_point"))
+        self.assertIn("calibration::Point::StartPlant", start_handler)
+        self.assertIn("calibration::Point::StopPlant", stop_handler)
+        self.assertIn("calibration::load_points", MAIN_CPP)
+        self.assertIn("calibration::save_point", MAIN_CPP)
         self.assertIn("nvs_get_u8", MAIN_CPP)
         self.assertIn("nvs_set_u8", MAIN_CPP)
         self.assertIn("nvs_commit", MAIN_CPP)
         self.assertIn("const uint32_t position = 15 + ((step * 80) / FOLD_STEPS);", MAIN_CPP)
         self.assertIn("const uint32_t position = 95 - ((step * 80) / UNFOLD_STEPS);", MAIN_CPP)
-        self.assertIn("if (position + 5 >= calFullRaise.load())", MAIN_CPP)
+        self.assertIn("if (position + 5 >= fullRaise)", MAIN_CPP)
+        self.assertNotIn("plant_control_", start_handler + stop_handler)
         for removed_symbol in ("Button_CalZero", "Button_CalSetTransport", "Button_CalSetPlant"):
             self.assertNotIn(removed_symbol, MAIN_CPP)
 
