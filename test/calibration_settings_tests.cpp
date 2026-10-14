@@ -42,6 +42,30 @@ TEST(CalibrationSettingsTest, OutOfRangeAndCorruptValuesUseSafeDefaults)
 
     EXPECT_EQ(FULL_RAISE_DEFAULT, points.fullRaise);
     EXPECT_EQ(70, points.limitedRaise);
+    EXPECT_EQ(20, points.startPlant);
+    EXPECT_EQ(STOP_PLANT_DEFAULT, points.stopPlant);
+}
+
+TEST(CalibrationSettingsTest, InvalidStoredPlantOrderDefaultsOnlyPlantPair)
+{
+    const Values stored = {
+        {"full_raise", 90},
+        {"limited_raise", 60},
+        {"start_plant", 10},
+        {"stop_plant", 20},
+    };
+    const Points points = load_points([&stored](const char *name, std::uint8_t &value) {
+        const auto found = stored.find(name);
+        if (found == stored.end())
+        {
+            return false;
+        }
+        value = found->second;
+        return true;
+    });
+
+    EXPECT_EQ(90, points.fullRaise);
+    EXPECT_EQ(60, points.limitedRaise);
     EXPECT_EQ(START_PLANT_DEFAULT, points.startPlant);
     EXPECT_EQ(STOP_PLANT_DEFAULT, points.stopPlant);
 }
