@@ -87,10 +87,10 @@ class PoolSafetyTests(unittest.TestCase):
         }
         fonts = {element.get("name"): element for element in root.findall("fontattributes")}
         rows = (
-            ("FullRaise", "FULL RAISE", "black", 132, "Btn_CalSetFullRaise", "95"),
-            ("LimitedRaise", "LIMITED RAISE", "green", 172, "Btn_CalSetLimitedRaise", "75"),
-            ("StartPlant", "START PLANT", "teal", 212, "Btn_CalSetStartPlant", "15"),
-            ("StopPlant", "STOP PLANT", "olive", 252, "Btn_CalSetStopPlant", "0"),
+            ("FullRaise", "FULL RAISE", "black", 150, "Btn_CalSetFullRaise", "95"),
+            ("LimitedRaise", "LIMITED RAISE", "green", 190, "Btn_CalSetLimitedRaise", "75"),
+            ("StartPlant", "START PLANT", "teal", 230, "Btn_CalSetStartPlant", "15"),
+            ("StopPlant", "STOP PLANT", "olive", 270, "Btn_CalSetStopPlant", "0"),
         )
         for suffix, label, colour, y, button_name, default_value in rows:
             label_object = objects[f"Label_Cal{suffix}"]
@@ -107,15 +107,15 @@ class PoolSafetyTests(unittest.TestCase):
             self.assertEqual(button.get("background_colour"), "green")
             self.assertEqual(
                 (int(button.get("x")), int(button.get("y")), int(button.get("width")), int(button.get("height"))),
-                (390, y, 64, 32),
+                (340, y, 110, 30),
             )
             button_label = objects[button[0].get("name")]
             self.assertEqual(button_label.get("value"), "SET")
 
         self.assertEqual(objects["Label_FramePos"].get("value"), "FRAME POSITION:")
-        self.assertEqual(objects["Num_CalPosition"].get("x"), "210")
-        self.assertEqual(objects["Num_CalPosition"].get("y"), "86")
-        self.assertEqual(objects["Divider_Cal2"].get("y"), "298")
+        self.assertEqual(objects["Num_CalPosition"].get("x"), "214")
+        self.assertEqual(objects["Num_CalPosition"].get("y"), "101")
+        self.assertEqual(objects["Divider_Cal2"].get("y"), "308")
         self.assertEqual(objects["Str_CalFaultMessage"].get("y"), "334")
 
         jog_buttons = {
@@ -126,9 +126,9 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertEqual(
             jog_buttons,
             {
-                "Btn_PlantLower": ("20", "390", "135", "65"),
-                "Btn_PlantLimitedLift": ("170", "390", "140", "65"),
-                "Btn_PlantFullLift": ("325", "390", "135", "65"),
+                "Btn_PlantLower": ("15", "390", "150", "65"),
+                "Btn_PlantLimitedLift": ("165", "390", "150", "65"),
+                "Btn_PlantFullLift": ("315", "390", "150", "65"),
             },
         )
         self.assertFalse(
