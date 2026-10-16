@@ -35,65 +35,65 @@
   <!-- ═══════════════════════════════════════════════════════════
        BUTTONS - Tab Navigation (Inactive)
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="white" border_colour="black" height="44" id="6000" key_code="0" latchable="no" name="Btn_TabRun" width="120" x="0" y="0">
+  <button background_colour="white" border_colour="black" height="44" id="6000" key_code="0" latchable="no" name="Btn_TabRun" width="106" x="16" y="16">
     <include_object id="11020" name="Label_TabRun" role=""/>
   </button>
-  <button background_colour="white" border_colour="black" height="44" id="6001" key_code="0" latchable="no" name="Btn_TabUnfold" width="120" x="120" y="0">
+  <button background_colour="white" border_colour="black" height="44" id="6001" key_code="0" latchable="no" name="Btn_TabUnfold" width="106" x="130" y="16">
     <include_object id="11021" name="Label_TabUnfold" role=""/>
   </button>
-  <button background_colour="white" border_colour="black" height="44" id="6002" key_code="0" latchable="no" name="Btn_TabFold" width="120" x="240" y="0">
+  <button background_colour="white" border_colour="black" height="44" id="6002" key_code="0" latchable="no" name="Btn_TabFold" width="106" x="244" y="16">
     <include_object id="11022" name="Label_TabFold" role=""/>
   </button>
-  <button background_colour="white" border_colour="black" height="44" id="6003" key_code="0" latchable="no" name="Btn_TabCal" width="120" x="360" y="0">
+  <button background_colour="white" border_colour="black" height="44" id="6003" key_code="0" latchable="no" name="Btn_TabCal" width="106" x="358" y="16">
     <include_object id="11023" name="Label_TabCal" role=""/>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
        BUTTONS - Tab Navigation (Active - Red Highlight)
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="red" border_colour="black" height="44" id="6004" key_code="0" latchable="no" name="Btn_TabRun_Active" width="120" x="0" y="0">
+  <button background_colour="red" border_colour="black" height="44" id="6004" key_code="0" latchable="no" name="Btn_TabRun_Active" width="106" x="16" y="16">
     <include_object id="11024" name="Label_TabRun_Active" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="44" id="6005" key_code="0" latchable="no" name="Btn_TabUnfold_Active" width="120" x="120" y="0">
+  <button background_colour="red" border_colour="black" height="44" id="6005" key_code="0" latchable="no" name="Btn_TabUnfold_Active" width="106" x="130" y="16">
     <include_object id="11025" name="Label_TabUnfold_Active" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="44" id="6006" key_code="0" latchable="no" name="Btn_TabFold_Active" width="120" x="240" y="0">
+  <button background_colour="red" border_colour="black" height="44" id="6006" key_code="0" latchable="no" name="Btn_TabFold_Active" width="106" x="244" y="16">
     <include_object id="11026" name="Label_TabFold_Active" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="44" id="6007" key_code="0" latchable="no" name="Btn_TabCal_Active" width="120" x="360" y="0">
+  <button background_colour="red" border_colour="black" height="44" id="6007" key_code="0" latchable="no" name="Btn_TabCal_Active" width="106" x="358" y="16">
     <include_object id="11027" name="Label_TabCal_Active" role=""/>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
        BUTTONS - RUN Screen Controls
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="green" border_colour="black" height="34" id="6052" key_code="0" latchable="no" name="Btn_VacPower" width="100" x="360" y="50">
+  <button background_colour="green" border_colour="black" height="32" id="6052" key_code="0" latchable="no" name="Btn_VacPower" width="211" x="20" y="103">
     <include_object id="11032" name="Label_BtnVacPower" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="38" id="6051" key_code="0" latchable="no" name="Btn_VacPressureDown" width="45" x="160" y="88">
+  <button background_colour="red" border_colour="black" height="38" id="6051" key_code="0" latchable="no" name="Btn_VacPressureDown" width="30" x="20" y="165">
     <include_object id="11031" name="Label_BtnMinus" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="38" id="6050" key_code="0" latchable="no" name="Btn_VacPressureUp" width="45" x="285" y="88">
+  <button background_colour="green" border_colour="black" height="38" id="6050" key_code="0" latchable="no" name="Btn_VacPressureUp" width="30" x="201" y="165">
     <include_object id="11030" name="Label_BtnPlus" role=""/>
   </button>
 
-  <button background_colour="green" border_colour="black" height="34" id="6042" key_code="0" latchable="no" name="Btn_FanPower" width="100" x="360" y="182">
+  <button background_colour="green" border_colour="black" height="32" id="6042" key_code="0" latchable="no" name="Btn_FanPower" width="211" x="20" y="236">
     <include_object id="11033" name="Label_BtnFanPower" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="38" id="6041" key_code="0" latchable="no" name="Btn_FanSpeedDown" width="45" x="160" y="220">
+  <button background_colour="red" border_colour="black" height="38" id="6041" key_code="0" latchable="no" name="Btn_FanSpeedDown" width="30" x="20" y="298">
     <include_object id="11031" name="Label_BtnMinus" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="38" id="6040" key_code="0" latchable="no" name="Btn_FanSpeedUp" width="45" x="300" y="220">
+  <button background_colour="green" border_colour="black" height="38" id="6040" key_code="0" latchable="no" name="Btn_FanSpeedUp" width="30" x="201" y="298">
     <include_object id="11030" name="Label_BtnPlus" role=""/>
   </button>
 
-  <button background_colour="white" border_colour="black" height="55" id="6060" key_code="0" latchable="no" name="Btn_MarkerPrev" width="110" x="20" y="352">
+  <button background_colour="white" border_colour="black" height="42" id="6060" key_code="0" latchable="no" name="Btn_MarkerPrev" width="80" x="75" y="412">
     <include_object id="11035" name="Label_BtnPrev" role=""/>
   </button>
-  <button background_colour="red" border_colour="black" height="55" id="6061" key_code="0" latchable="no" name="Btn_MarkerToggle" width="190" x="145" y="352">
+  <button background_colour="red" border_colour="black" height="42" id="6061" key_code="0" latchable="no" name="Btn_MarkerToggle" width="150" x="165" y="412">
     <include_object id="22010" name="Str_MarkerStatus" role=""/>
   </button>
-  <button background_colour="white" border_colour="black" height="55" id="6062" key_code="0" latchable="no" name="Btn_MarkerNext" width="110" x="350" y="352">
+  <button background_colour="white" border_colour="black" height="42" id="6062" key_code="0" latchable="no" name="Btn_MarkerNext" width="80" x="325" y="412">
     <include_object id="11034" name="Label_BtnNext" role=""/>
   </button>
 
@@ -101,125 +101,125 @@
        BUTTONS - Sequence Hydraulic Action Buttons
   ═══════════════════════════════════════════════════════════ -->
   <!-- UNFOLD Action Buttons (IDs: 6020-6025) -->
-  <button background_colour="green" border_colour="black" height="34" id="6020" key_code="0" latchable="no" name="Btn_UnfoldAction1" width="135" x="325" y="114">
+  <button background_colour="green" border_colour="black" height="34" id="6020" key_code="0" latchable="no" name="Btn_UnfoldAction1" width="100" x="354" y="108">
     <include_object id="22030" name="Str_UnfoldAction1" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6021" key_code="0" latchable="no" name="Btn_UnfoldAction2" width="135" x="325" y="154">
+  <button background_colour="green" border_colour="black" height="34" id="6021" key_code="0" latchable="no" name="Btn_UnfoldAction2" width="100" x="354" y="158">
     <include_object id="22031" name="Str_UnfoldAction2" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6022" key_code="0" latchable="no" name="Btn_UnfoldAction3" width="135" x="325" y="194">
+  <button background_colour="green" border_colour="black" height="34" id="6022" key_code="0" latchable="no" name="Btn_UnfoldAction3" width="100" x="354" y="208">
     <include_object id="22032" name="Str_UnfoldAction3" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6023" key_code="0" latchable="no" name="Btn_UnfoldAction4" width="135" x="325" y="234">
+  <button background_colour="green" border_colour="black" height="34" id="6023" key_code="0" latchable="no" name="Btn_UnfoldAction4" width="100" x="354" y="258">
     <include_object id="22033" name="Str_UnfoldAction4" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6024" key_code="0" latchable="no" name="Btn_UnfoldAction5" width="135" x="325" y="274">
+  <button background_colour="green" border_colour="black" height="34" id="6024" key_code="0" latchable="no" name="Btn_UnfoldAction5" width="100" x="354" y="308">
     <include_object id="22034" name="Str_UnfoldAction5" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6025" key_code="0" latchable="no" name="Btn_UnfoldAction6" width="135" x="325" y="314">
+  <button background_colour="green" border_colour="black" height="34" id="6025" key_code="0" latchable="no" name="Btn_UnfoldAction6" width="100" x="354" y="358">
     <include_object id="22035" name="Str_UnfoldAction6" role=""/>
   </button>
 
   <!-- FOLD Action Buttons (IDs: 6010-6015) -->
-  <button background_colour="green" border_colour="black" height="34" id="6010" key_code="0" latchable="no" name="Btn_FoldAction1" width="135" x="325" y="114">
+  <button background_colour="green" border_colour="black" height="34" id="6010" key_code="0" latchable="no" name="Btn_FoldAction1" width="100" x="354" y="108">
     <include_object id="22040" name="Str_FoldAction1" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6011" key_code="0" latchable="no" name="Btn_FoldAction2" width="135" x="325" y="154">
+  <button background_colour="green" border_colour="black" height="34" id="6011" key_code="0" latchable="no" name="Btn_FoldAction2" width="100" x="354" y="158">
     <include_object id="22041" name="Str_FoldAction2" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6012" key_code="0" latchable="no" name="Btn_FoldAction3" width="135" x="325" y="194">
+  <button background_colour="green" border_colour="black" height="34" id="6012" key_code="0" latchable="no" name="Btn_FoldAction3" width="100" x="354" y="208">
     <include_object id="22042" name="Str_FoldAction3" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6013" key_code="0" latchable="no" name="Btn_FoldAction4" width="135" x="325" y="234">
+  <button background_colour="green" border_colour="black" height="34" id="6013" key_code="0" latchable="no" name="Btn_FoldAction4" width="100" x="354" y="258">
     <include_object id="22043" name="Str_FoldAction4" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6014" key_code="0" latchable="no" name="Btn_FoldAction5" width="135" x="325" y="274">
+  <button background_colour="green" border_colour="black" height="34" id="6014" key_code="0" latchable="no" name="Btn_FoldAction5" width="100" x="354" y="308">
     <include_object id="22044" name="Str_FoldAction5" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="34" id="6015" key_code="0" latchable="no" name="Btn_FoldAction6" width="135" x="325" y="314">
+  <button background_colour="green" border_colour="black" height="34" id="6015" key_code="0" latchable="no" name="Btn_FoldAction6" width="100" x="354" y="358">
     <include_object id="22045" name="Str_FoldAction6" role=""/>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
        BUTTONS - Calibration & Planter Controls
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="green" border_colour="black" height="32" id="6070" key_code="0" latchable="no" name="Btn_CalSetFullRaise" width="64" x="390" y="132">
+  <button background_colour="green" border_colour="black" height="30" id="6070" key_code="0" latchable="no" name="Btn_CalSetFullRaise" width="110" x="340" y="150">
     <include_object id="11038" name="Label_BtnSetFullRaise" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="32" id="6071" key_code="0" latchable="no" name="Btn_CalSetLimitedRaise" width="64" x="390" y="172">
+  <button background_colour="green" border_colour="black" height="30" id="6071" key_code="0" latchable="no" name="Btn_CalSetLimitedRaise" width="110" x="340" y="190">
     <include_object id="11039" name="Label_BtnSetLimitedRaise" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="32" id="6072" key_code="0" latchable="no" name="Btn_CalSetStartPlant" width="64" x="390" y="212">
+  <button background_colour="green" border_colour="black" height="30" id="6072" key_code="0" latchable="no" name="Btn_CalSetStartPlant" width="110" x="340" y="230">
     <include_object id="11040" name="Label_BtnSetStartPlant" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="32" id="6073" key_code="0" latchable="no" name="Btn_CalSetStopPlant" width="64" x="390" y="252">
+  <button background_colour="green" border_colour="black" height="30" id="6073" key_code="0" latchable="no" name="Btn_CalSetStopPlant" width="110" x="340" y="270">
     <include_object id="11068" name="Label_BtnSetStopPlant" role=""/>
   </button>
 
-  <button background_colour="yellow" border_colour="black" height="65" id="6032" key_code="0" latchable="no" name="Btn_PlantLower" width="135" x="20" y="390">
+  <button background_colour="yellow" border_colour="black" height="65" id="6032" key_code="0" latchable="no" name="Btn_PlantLower" width="150" x="15" y="390">
     <include_object id="11043" name="Label_BtnLower" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="65" id="6030" key_code="0" latchable="no" name="Btn_PlantLimitedLift" width="140" x="170" y="390">
+  <button background_colour="green" border_colour="black" height="65" id="6030" key_code="0" latchable="no" name="Btn_PlantLimitedLift" width="150" x="165" y="390">
     <include_object id="11041" name="Label_BtnLimitedLift" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="65" id="6031" key_code="0" latchable="no" name="Btn_PlantFullLift" width="135" x="325" y="390">
+  <button background_colour="green" border_colour="black" height="65" id="6031" key_code="0" latchable="no" name="Btn_PlantFullLift" width="150" x="315" y="390">
     <include_object id="11042" name="Label_BtnFullLift" role=""/>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════
        DIVIDERS - Black Horizontal Separation Lines
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="black" font_attributes="FontSmall" height="4" horizontal_justification="centred" id="7000" language="" length="1" name="Divider_Top" options="" value=" " vertical_justification="middle" width="480" x="0" y="44"/>
+  <outputstring background_colour="black" font_attributes="Fit8x12_black" height="3" horizontal_justification="centred" id="7000" language="" length="1" name="Divider_Top" options="" value=" " vertical_justification="middle" width="480" x="0" y="68"/>
   <outputstring background_colour="black" font_attributes="FontSmall" height="3" horizontal_justification="centred" id="7001" language="" length="1" name="Divider_Mid1" options="" value=" " vertical_justification="middle" width="480" x="0" y="175"/>
   <outputstring background_colour="black" font_attributes="FontSmall" height="3" horizontal_justification="centred" id="7002" language="" length="1" name="Divider_Mid2" options="" value=" " vertical_justification="middle" width="480" x="0" y="307"/>
-  <outputstring background_colour="black" font_attributes="FontSmall" height="3" horizontal_justification="centred" id="7003" language="" length="1" name="Divider_Fold" options="" value=" " vertical_justification="middle" width="480" x="0" y="360"/>
-  <outputstring background_colour="black" font_attributes="FontSmall" height="3" horizontal_justification="centred" id="7004" language="" length="1" name="Divider_Cal1" options="" value=" " vertical_justification="middle" width="480" x="0" y="125"/>
-  <outputstring background_colour="black" font_attributes="FontSmall" height="3" horizontal_justification="centred" id="7005" language="" length="1" name="Divider_Cal2" options="" value=" " vertical_justification="middle" width="480" x="0" y="298"/>
+  <outputstring background_colour="black" font_attributes="Fit8x12_black" height="3" horizontal_justification="centred" id="7003" language="" length="1" name="Divider_Fold" options="" value=" " vertical_justification="middle" width="480" x="0" y="404"/>
+  <outputstring background_colour="black" font_attributes="Fit8x12_black" height="3" horizontal_justification="centred" id="7004" language="" length="1" name="Divider_Cal1" options="" value=" " vertical_justification="middle" width="480" x="0" y="140"/>
+  <outputstring background_colour="black" font_attributes="Fit8x12_black" height="3" horizontal_justification="centred" id="7005" language="" length="1" name="Divider_Cal2" options="" value=" " vertical_justification="middle" width="480" x="0" y="308"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Section Titles & Labels
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11001" language="" length="15" name="Label_FoldTitle" options="" value="FOLD SEQUENCE" vertical_justification="top" width="240" x="15" y="50"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11002" language="" length="15" name="Label_UnfoldTitle" options="" value="UNFOLD SEQUENCE" vertical_justification="top" width="240" x="15" y="50"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11003" language="" length="17" name="Label_CalTitle" options="" value="FRAME CALIBRATION" vertical_justification="top" width="300" x="15" y="50"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11004" language="" length="10" name="Label_VacSection" options="" value="VACUUM" vertical_justification="top" width="150" x="15" y="52"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11005" language="" length="10" name="Label_FanSection" options="" value="BULK FILL" vertical_justification="top" width="150" x="15" y="184"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="20" horizontal_justification="left" id="11001" language="" length="15" name="Label_FoldTitle" options="" value="FOLD SEQUENCE" vertical_justification="top" width="200" x="20" y="76"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="20" horizontal_justification="left" id="11002" language="" length="15" name="Label_UnfoldTitle" options="" value="UNFOLD SEQUENCE" vertical_justification="top" width="200" x="20" y="76"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="20" horizontal_justification="left" id="11003" language="" length="17" name="Label_CalTitle" options="" value="FRAME CALIBRATION" vertical_justification="top" width="240" x="20" y="79"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="18" horizontal_justification="left" id="11004" language="" length="10" name="Label_VacSection" options="" value="VACUUM" vertical_justification="top" width="211" x="20" y="81"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="18" horizontal_justification="left" id="11005" language="" length="10" name="Label_FanSection" options="" value="BULK FILL" vertical_justification="top" width="211" x="20" y="214"/>
   <outputstring background_colour="silver" font_attributes="FontMedium" height="28" horizontal_justification="left" id="11006" language="" length="15" name="Label_MarkerSection" options="" value="MARKER CONTROL" vertical_justification="top" width="200" x="15" y="315"/>
 
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11007" language="" length="10" name="Label_VacSetpoint" options="" value="SETPOINT:" vertical_justification="top" width="120" x="20" y="92"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11008" language="" length="10" name="Label_VacActual" options="" value="ACTUAL:" vertical_justification="top" width="120" x="20" y="135"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11009" language="" length="8" name="Label_VacUnit" options="" value="in H2O" vertical_justification="top" width="110" x="340" y="92"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11019" language="" length="8" name="Label_VacActualUnit" options="" value="in H2O" vertical_justification="top" width="110" x="340" y="135"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11007" language="" length="10" name="Label_VacSetpoint" options="" value="VACUUM RATE" vertical_justification="top" width="211" x="20" y="145"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11008" language="" length="10" name="Label_VacActual" options="" value="VACUUM ACTUAL" vertical_justification="top" width="211" x="249" y="145"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="38" horizontal_justification="left" id="11009" language="" length="8" name="Label_VacUnit" options="" value="in H2O" vertical_justification="middle" width="63" x="134" y="165"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="38" horizontal_justification="left" id="11019" language="" length="8" name="Label_VacActualUnit" options="" value="in H2O" vertical_justification="middle" width="111" x="349" y="165"/>
 
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11028" language="" length="10" name="Label_FanSetpoint" options="" value="SETPOINT:" vertical_justification="top" width="120" x="20" y="224"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11029" language="" length="10" name="Label_FanActual" options="" value="ACTUAL:" vertical_justification="top" width="120" x="20" y="267"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11010" language="" length="4" name="Label_FanUnit" options="" value="RPM" vertical_justification="top" width="80" x="385" y="224"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11018" language="" length="4" name="Label_FanActualUnit" options="" value="RPM" vertical_justification="top" width="80" x="385" y="267"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11028" language="" length="10" name="Label_FanSetpoint" options="" value="BULK FILL RATE" vertical_justification="top" width="211" x="20" y="278"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11029" language="" length="10" name="Label_FanActual" options="" value="BULK FILL ACTUAL" vertical_justification="top" width="211" x="249" y="278"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="38" horizontal_justification="left" id="11010" language="" length="4" name="Label_FanUnit" options="" value="RPM" vertical_justification="middle" width="63" x="134" y="298"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="38" horizontal_justification="left" id="11018" language="" length="4" name="Label_FanActualUnit" options="" value="RPM" vertical_justification="middle" width="111" x="349" y="298"/>
 
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11011" language="" length="15" name="Label_FramePos" options="" value="FRAME POSITION:" vertical_justification="top" width="180" x="20" y="88"/>
-  <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11017" language="" length="2" name="Label_CalPercent" options="" value="%" vertical_justification="top" width="30" x="275" y="88"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11012" language="" length="10" name="Label_CalFullRaise" options="" value="FULL RAISE" vertical_justification="middle" width="180" x="20" y="132"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall_Green" height="32" horizontal_justification="left" id="11013" language="" length="13" name="Label_CalLimitedRaise" options="" value="LIMITED RAISE" vertical_justification="middle" width="180" x="20" y="172"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall_Teal" height="32" horizontal_justification="left" id="11014" language="" length="11" name="Label_CalStartPlant" options="" value="START PLANT" vertical_justification="middle" width="180" x="20" y="212"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall_Olive" height="32" horizontal_justification="left" id="11015" language="" length="10" name="Label_CalStopPlant" options="" value="STOP PLANT" vertical_justification="middle" width="180" x="20" y="252"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11048" language="" length="2" name="Label_CalFullRaisePercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="132"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11049" language="" length="2" name="Label_CalLimitedPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="172"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11066" language="" length="2" name="Label_CalStartPlantPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="212"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11067" language="" length="2" name="Label_CalStopPlantPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="252"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="24" horizontal_justification="left" id="11016" language="" length="25" name="Label_Diagnostics" options="" value="SYSTEM STATUS &amp; FAULTS:" vertical_justification="top" width="300" x="15" y="306"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="26" horizontal_justification="left" id="11011" language="" length="15" name="Label_FramePos" options="" value="FRAME POSITION:" vertical_justification="middle" width="190" x="20" y="105"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="26" horizontal_justification="left" id="11017" language="" length="2" name="Label_CalPercent" options="" value="%" vertical_justification="middle" width="24" x="288" y="105"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="30" horizontal_justification="left" id="11012" language="" length="10" name="Label_CalFullRaise" options="" value="FULL RAISE" vertical_justification="middle" width="170" x="20" y="150"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_green" height="30" horizontal_justification="left" id="11013" language="" length="13" name="Label_CalLimitedRaise" options="" value="LIMITED RAISE" vertical_justification="middle" width="170" x="20" y="190"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_teal" height="30" horizontal_justification="left" id="11014" language="" length="11" name="Label_CalStartPlant" options="" value="START PLANT" vertical_justification="middle" width="170" x="20" y="230"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_olive" height="30" horizontal_justification="left" id="11015" language="" length="10" name="Label_CalStopPlant" options="" value="STOP PLANT" vertical_justification="middle" width="170" x="20" y="270"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="30" horizontal_justification="left" id="11048" language="" length="2" name="Label_CalFullRaisePercent" options="" value="%" vertical_justification="middle" width="24" x="294" y="150"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="30" horizontal_justification="left" id="11049" language="" length="2" name="Label_CalLimitedPercent" options="" value="%" vertical_justification="middle" width="24" x="294" y="190"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="30" horizontal_justification="left" id="11066" language="" length="2" name="Label_CalStartPlantPercent" options="" value="%" vertical_justification="middle" width="24" x="294" y="230"/>
+  <outputstring background_colour="silver" font_attributes="Fit12x16_black" height="30" horizontal_justification="left" id="11067" language="" length="2" name="Label_CalStopPlantPercent" options="" value="%" vertical_justification="middle" width="24" x="294" y="270"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="18" horizontal_justification="left" id="11016" language="" length="25" name="Label_Diagnostics" options="" value="SYSTEM STATUS &amp; FAULTS:" vertical_justification="top" width="300" x="20" y="314"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Tab Labels
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="white" font_attributes="FontSmall" height="44" horizontal_justification="centred" id="11020" language="" length="6" name="Label_TabRun" options="" value="RUN" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="44" horizontal_justification="centred" id="11021" language="" length="6" name="Label_TabUnfold" options="" value="UNFOLD" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="44" horizontal_justification="centred" id="11022" language="" length="6" name="Label_TabFold" options="" value="FOLD" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="44" horizontal_justification="centred" id="11023" language="" length="6" name="Label_TabCal" options="" value="CAL" vertical_justification="middle" width="120" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="44" horizontal_justification="centred" id="11020" language="" length="6" name="Label_TabRun" options="" value="RUN" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="44" horizontal_justification="centred" id="11021" language="" length="6" name="Label_TabUnfold" options="" value="UNFOLD" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="44" horizontal_justification="centred" id="11022" language="" length="6" name="Label_TabFold" options="" value="FOLD" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="44" horizontal_justification="centred" id="11023" language="" length="6" name="Label_TabCal" options="" value="CAL" vertical_justification="middle" width="106" x="0" y="0"/>
 
-  <outputstring background_colour="red" font_attributes="FontSmall_White" height="44" horizontal_justification="centred" id="11024" language="" length="6" name="Label_TabRun_Active" options="" value="RUN" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="red" font_attributes="FontSmall_White" height="44" horizontal_justification="centred" id="11025" language="" length="6" name="Label_TabUnfold_Active" options="" value="UNFOLD" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="red" font_attributes="FontSmall_White" height="44" horizontal_justification="centred" id="11026" language="" length="6" name="Label_TabFold_Active" options="" value="FOLD" vertical_justification="middle" width="120" x="0" y="0"/>
-  <outputstring background_colour="red" font_attributes="FontSmall_White" height="44" horizontal_justification="centred" id="11027" language="" length="6" name="Label_TabCal_Active" options="" value="CAL" vertical_justification="middle" width="120" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="44" horizontal_justification="centred" id="11024" language="" length="6" name="Label_TabRun_Active" options="" value="RUN" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="44" horizontal_justification="centred" id="11025" language="" length="6" name="Label_TabUnfold_Active" options="" value="UNFOLD" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="44" horizontal_justification="centred" id="11026" language="" length="6" name="Label_TabFold_Active" options="" value="FOLD" vertical_justification="middle" width="106" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="44" horizontal_justification="centred" id="11027" language="" length="6" name="Label_TabCal_Active" options="" value="CAL" vertical_justification="middle" width="106" x="0" y="0"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - SoftKey Labels
@@ -232,80 +232,80 @@
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Button Labels
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="green" font_attributes="FontMedium_White" height="38" horizontal_justification="centred" id="11030" language="" length="2" name="Label_BtnPlus" options="" value="+" vertical_justification="middle" width="45" x="0" y="0"/>
-  <outputstring background_colour="red" font_attributes="FontMedium_White" height="38" horizontal_justification="centred" id="11031" language="" length="2" name="Label_BtnMinus" options="" value="-" vertical_justification="middle" width="45" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="11032" language="" length="4" name="Label_BtnVacPower" options="" value="ON" vertical_justification="middle" width="100" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="11033" language="" length="4" name="Label_BtnFanPower" options="" value="ON" vertical_justification="middle" width="100" x="0" y="0"/>
-  <outputstring background_colour="white" font_attributes="FontMedium" height="55" horizontal_justification="centred" id="11034" language="" length="6" name="Label_BtnNext" options="" value="NEXT" vertical_justification="middle" width="110" x="0" y="0"/>
-  <outputstring background_colour="white" font_attributes="FontMedium" height="55" horizontal_justification="centred" id="11035" language="" length="6" name="Label_BtnPrev" options="" value="PREV" vertical_justification="middle" width="110" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="38" horizontal_justification="centred" id="11030" language="" length="2" name="Label_BtnPlus" options="" value="+" vertical_justification="middle" width="30" x="0" y="0"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="38" horizontal_justification="centred" id="11031" language="" length="2" name="Label_BtnMinus" options="" value="-" vertical_justification="middle" width="30" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="32" horizontal_justification="centred" id="11032" language="" length="4" name="Label_BtnVacPower" options="" value="ON" vertical_justification="middle" width="211" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="32" horizontal_justification="centred" id="11033" language="" length="4" name="Label_BtnFanPower" options="" value="ON" vertical_justification="middle" width="211" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="42" horizontal_justification="centred" id="11034" language="" length="6" name="Label_BtnNext" options="" value="NEXT" vertical_justification="middle" width="80" x="0" y="0"/>
+  <outputstring background_colour="white" font_attributes="Fit12x16_black" height="42" horizontal_justification="centred" id="11035" language="" length="6" name="Label_BtnPrev" options="" value="PREV" vertical_justification="middle" width="80" x="0" y="0"/>
   <outputstring background_colour="red" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11036" language="" length="8" name="Label_BtnCancel" options="" value="CANCEL" vertical_justification="middle" width="110" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11037" language="" length="10" name="Label_BtnNextStep" options="" value="NEXT STEP" vertical_justification="middle" width="190" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11038" language="" length="4" name="Label_BtnSetFullRaise" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11039" language="" length="4" name="Label_BtnSetLimitedRaise" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11040" language="" length="4" name="Label_BtnSetStartPlant" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11068" language="" length="4" name="Label_BtnSetStopPlant" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="65" horizontal_justification="centred" id="11041" language="" length="14" name="Label_BtnLimitedLift" options="" value="LIMITED LIFT" vertical_justification="middle" width="140" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="65" horizontal_justification="centred" id="11042" language="" length="10" name="Label_BtnFullLift" options="" value="FULL LIFT" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="yellow" font_attributes="FontSmall" height="65" horizontal_justification="centred" id="11043" language="" length="6" name="Label_BtnLower" options="" value="LOWER" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="30" horizontal_justification="centred" id="11038" language="" length="4" name="Label_BtnSetFullRaise" options="" value="SET" vertical_justification="middle" width="110" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="30" horizontal_justification="centred" id="11039" language="" length="4" name="Label_BtnSetLimitedRaise" options="" value="SET" vertical_justification="middle" width="110" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="30" horizontal_justification="centred" id="11040" language="" length="4" name="Label_BtnSetStartPlant" options="" value="SET" vertical_justification="middle" width="110" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="30" horizontal_justification="centred" id="11068" language="" length="4" name="Label_BtnSetStopPlant" options="" value="SET" vertical_justification="middle" width="110" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="65" horizontal_justification="centred" id="11041" language="" length="14" name="Label_BtnLimitedLift" options="" value="LIMITED LIFT" vertical_justification="middle" width="150" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit12x16_white" height="65" horizontal_justification="centred" id="11042" language="" length="10" name="Label_BtnFullLift" options="" value="FULL LIFT" vertical_justification="middle" width="150" x="0" y="0"/>
+  <outputstring background_colour="yellow" font_attributes="Fit12x16_black" height="65" horizontal_justification="centred" id="11043" language="" length="6" name="Label_BtnLower" options="" value="LOWER" vertical_justification="middle" width="150" x="0" y="0"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Sequence Hydraulic Action Labels
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11050" language="" length="30" name="Label_UnfoldStep1" options="" value="1. Unlatch Wings &amp; Wing Tilt" vertical_justification="middle" width="295" x="20" y="115"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11051" language="" length="30" name="Label_UnfoldStep2" options="" value="2. Lower Planter" vertical_justification="middle" width="295" x="20" y="155"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11052" language="" length="30" name="Label_UnfoldStep3" options="" value="3. Unfold Wings" vertical_justification="middle" width="295" x="20" y="195"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11053" language="" length="30" name="Label_UnfoldStep4" options="" value="4. Unlatch Transport Hooks" vertical_justification="middle" width="295" x="20" y="235"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11054" language="" length="30" name="Label_UnfoldStep5" options="" value="5. Rotate Bar" vertical_justification="middle" width="295" x="20" y="275"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11055" language="" length="30" name="Label_UnfoldStep6" options="" value="6. Extend Tongue" vertical_justification="middle" width="295" x="20" y="315"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11050" language="" length="30" name="Label_UnfoldStep1" options="" value="1. Unlatch Wings &amp; Wing Tilt" vertical_justification="middle" width="320" x="26" y="110"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11051" language="" length="30" name="Label_UnfoldStep2" options="" value="2. Lower Planter" vertical_justification="middle" width="320" x="26" y="160"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11052" language="" length="30" name="Label_UnfoldStep3" options="" value="3. Unfold Wings" vertical_justification="middle" width="320" x="26" y="210"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11053" language="" length="30" name="Label_UnfoldStep4" options="" value="4. Unlatch Transport Hooks" vertical_justification="middle" width="320" x="26" y="260"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11054" language="" length="30" name="Label_UnfoldStep5" options="" value="5. Rotate Bar" vertical_justification="middle" width="320" x="26" y="310"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11055" language="" length="30" name="Label_UnfoldStep6" options="" value="6. Extend Tongue" vertical_justification="middle" width="320" x="26" y="360"/>
 
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11060" language="" length="30" name="Label_FoldStep1" options="" value="1. Retract Tongue" vertical_justification="middle" width="295" x="20" y="115"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11061" language="" length="30" name="Label_FoldStep2" options="" value="2. Rotate Bar" vertical_justification="middle" width="295" x="20" y="155"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11062" language="" length="30" name="Label_FoldStep3" options="" value="3. Latch Transport Hooks" vertical_justification="middle" width="295" x="20" y="195"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11063" language="" length="30" name="Label_FoldStep4" options="" value="4. Fold Wings" vertical_justification="middle" width="295" x="20" y="235"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11064" language="" length="30" name="Label_FoldStep5" options="" value="5. Raise Planter" vertical_justification="middle" width="295" x="20" y="275"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11065" language="" length="30" name="Label_FoldStep6" options="" value="6. Latch Wings &amp; Center Bar" vertical_justification="middle" width="295" x="20" y="315"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11060" language="" length="30" name="Label_FoldStep1" options="" value="1. Retract Tongue" vertical_justification="middle" width="320" x="26" y="110"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11061" language="" length="30" name="Label_FoldStep2" options="" value="2. Rotate Bar" vertical_justification="middle" width="320" x="26" y="160"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11062" language="" length="30" name="Label_FoldStep3" options="" value="3. Latch Transport Hooks" vertical_justification="middle" width="320" x="26" y="210"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11063" language="" length="30" name="Label_FoldStep4" options="" value="4. Fold Wings" vertical_justification="middle" width="320" x="26" y="260"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11064" language="" length="30" name="Label_FoldStep5" options="" value="5. Raise Planter" vertical_justification="middle" width="320" x="26" y="310"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="11065" language="" length="30" name="Label_FoldStep6" options="" value="6. Latch Wings &amp; Center Bar" vertical_justification="middle" width="320" x="26" y="360"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        OUTPUT STRINGS - Sequence Hydraulic Action Button Text
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22030" language="" length="10" name="Str_UnfoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22031" language="" length="10" name="Str_UnfoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22032" language="" length="10" name="Str_UnfoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22033" language="" length="10" name="Str_UnfoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22034" language="" length="10" name="Str_UnfoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22035" language="" length="10" name="Str_UnfoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22030" language="" length="10" name="Str_UnfoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22031" language="" length="10" name="Str_UnfoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22032" language="" length="10" name="Str_UnfoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22033" language="" length="10" name="Str_UnfoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22034" language="" length="10" name="Str_UnfoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22035" language="" length="10" name="Str_UnfoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
 
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22040" language="" length="10" name="Str_FoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22041" language="" length="10" name="Str_FoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22042" language="" length="10" name="Str_FoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22043" language="" length="10" name="Str_FoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22044" language="" length="10" name="Str_FoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="34" horizontal_justification="centred" id="22045" language="" length="10" name="Str_FoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="135" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22040" language="" length="10" name="Str_FoldAction1" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22041" language="" length="10" name="Str_FoldAction2" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22042" language="" length="10" name="Str_FoldAction3" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22043" language="" length="10" name="Str_FoldAction4" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22044" language="" length="10" name="Str_FoldAction5" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="Fit8x12_white" height="34" horizontal_justification="centred" id="22045" language="" length="10" name="Str_FoldAction6" options="" value="ACTIVATE" vertical_justification="middle" width="100" x="0" y="0"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        VARIABLE STRINGS - Dynamic Runtime Text
   ═══════════════════════════════════════════════════════════ -->
-  <outputstring background_colour="white" font_attributes="FontSmall" height="28" horizontal_justification="left" id="22000" language="" length="40" name="Str_FoldInstruction" options="" value="SELECT FOLD TO BEGIN" vertical_justification="middle" width="450" x="15" y="80"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="28" horizontal_justification="left" id="22001" language="" length="40" name="Str_UnfoldInstruction" options="" value="SELECT UNFOLD TO BEGIN" vertical_justification="middle" width="450" x="15" y="80"/>
-  <outputstring background_colour="red" font_attributes="FontMedium_White" height="55" horizontal_justification="centred" id="22010" language="" length="15" name="Str_MarkerStatus" options="" value="MARKER: OFF" vertical_justification="middle" width="190" x="0" y="0"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="30" horizontal_justification="centred" id="22011" language="" length="35" name="Str_MarkerDetail" options="" value="1 = LEFT     2 = RIGHT     OFF" vertical_justification="middle" width="440" x="20" y="425"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="30" horizontal_justification="centred" id="22020" language="" length="20" name="Str_CalPositionState" options="" value="MID RANGE" vertical_justification="middle" width="150" x="315" y="88"/>
-  <outputstring background_colour="white" font_attributes="FontSmall" height="34" horizontal_justification="centred" id="22021" language="" length="35" name="Str_CalFaultMessage" options="" value="STATUS: OK - NO ACTIVE FAULTS" vertical_justification="middle" width="440" x="20" y="334"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="22000" language="" length="40" name="Str_FoldInstruction" options="" value="SELECT FOLD TO BEGIN" vertical_justification="middle" width="240" x="230" y="78"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="22001" language="" length="40" name="Str_UnfoldInstruction" options="" value="SELECT UNFOLD TO BEGIN" vertical_justification="middle" width="240" x="230" y="78"/>
+  <outputstring background_colour="red" font_attributes="Fit12x16_white" height="42" horizontal_justification="centred" id="22010" language="" length="15" name="Str_MarkerStatus" options="" value="MARKER: OFF" vertical_justification="middle" width="150" x="0" y="0"/>
+  <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="centred" id="22011" language="" length="35" name="Str_MarkerDetail" options="" value="1 = LEFT     2 = RIGHT     OFF" vertical_justification="middle" width="440" x="20" y="458"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="26" horizontal_justification="centred" id="22020" language="" length="20" name="Str_CalPositionState" options="" value="MID RANGE" vertical_justification="middle" width="144" x="316" y="105"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="30" horizontal_justification="centred" id="22021" language="" length="35" name="Str_CalFaultMessage" options="" value="STATUS: OK - NO ACTIVE FAULTS" vertical_justification="middle" width="440" x="20" y="334"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        NUMERIC VALUES - Live Display & Target Setpoints
   ═══════════════════════════════════════════════════════════ -->
   <outputnumber background_colour="silver" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21000" max_value="1000" min_value="0" name="Num_FoldStep" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="80" x="120" y="70"/>
   <outputnumber background_colour="silver" font_attributes="FontLarge" format="%4d" height="40" horizontal_justification="left" id="21001" max_value="1000" min_value="0" name="Num_UnfoldStep" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="80" x="120" y="70"/>
-  <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21002" max_value="5000" min_value="0" name="Num_FanRPMTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="3800" width="75" x="215" y="222"/>
-  <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21003" max_value="5000" min_value="0" name="Num_FanRPMActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="3820" width="75" x="215" y="265"/>
-  <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21004" max_value="100" min_value="0" name="Num_VacTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" width="60" x="215" y="90"/>
-  <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21005" max_value="100" min_value="0" name="Num_VacActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" width="60" x="215" y="133"/>
-  <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21010" max_value="100" min_value="0" name="Num_CalPosition" number_of_decimals="0" offset="0" options="" scale="1.0" value="50" width="60" x="210" y="86"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21011" max_value="100" min_value="0" name="Num_CalFullRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="95" width="50" x="222" y="132"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21012" max_value="100" min_value="0" name="Num_CalLimitedRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="75" width="50" x="222" y="172"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21014" max_value="100" min_value="0" name="Num_CalStartPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="15" width="50" x="222" y="212"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21015" max_value="100" min_value="0" name="Num_CalStopPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="50" x="222" y="252"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="38" horizontal_justification="centred" id="21002" max_value="5000" min_value="0" name="Num_FanRPMTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="3800" vertical_justification="middle" width="80" x="54" y="298"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="38" horizontal_justification="centred" id="21003" max_value="5000" min_value="0" name="Num_FanRPMActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="3820" vertical_justification="middle" width="100" x="249" y="298"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="38" horizontal_justification="centred" id="21004" max_value="100" min_value="0" name="Num_VacTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" vertical_justification="middle" width="80" x="54" y="165"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="38" horizontal_justification="centred" id="21005" max_value="100" min_value="0" name="Num_VacActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" vertical_justification="middle" width="100" x="249" y="165"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="32" horizontal_justification="centred" id="21010" max_value="100" min_value="0" name="Num_CalPosition" number_of_decimals="0" offset="0" options="" scale="1.0" value="50" vertical_justification="middle" width="70" x="214" y="101"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="30" horizontal_justification="centred" id="21011" max_value="100" min_value="0" name="Num_CalFullRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="95" vertical_justification="middle" width="90" x="200" y="150"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="30" horizontal_justification="centred" id="21012" max_value="100" min_value="0" name="Num_CalLimitedRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="75" vertical_justification="middle" width="90" x="200" y="190"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="30" horizontal_justification="centred" id="21014" max_value="100" min_value="0" name="Num_CalStartPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="15" vertical_justification="middle" width="90" x="200" y="230"/>
+  <outputnumber background_colour="white" font_attributes="Fit12x16_black" format="%4d" height="30" horizontal_justification="centred" id="21015" max_value="100" min_value="0" name="Num_CalStopPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" vertical_justification="middle" width="90" x="200" y="270"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        FONT ATTRIBUTES
@@ -319,6 +319,16 @@
   <fontattributes font_colour="green" font_size="16x16" font_style="normal" font_type="latin1" id="23006" language="" name="FontSmall_Green" role=""/>
   <fontattributes font_colour="teal" font_size="16x16" font_style="normal" font_type="latin1" id="23007" language="" name="FontSmall_Teal" role=""/>
   <fontattributes font_colour="olive" font_size="16x16" font_style="normal" font_type="latin1" id="23008" language="" name="FontSmall_Olive" role=""/>
+  <fontattributes font_colour="black" font_size="8x12" font_style="normal" font_type="latin1" id="23100" language="" name="Fit8x12_black" role=""/>
+  <fontattributes font_colour="white" font_size="8x12" font_style="normal" font_type="latin1" id="23101" language="" name="Fit8x12_white" role=""/>
+  <fontattributes font_colour="green" font_size="8x12" font_style="normal" font_type="latin1" id="23102" language="" name="Fit8x12_green" role=""/>
+  <fontattributes font_colour="teal" font_size="8x12" font_style="normal" font_type="latin1" id="23103" language="" name="Fit8x12_teal" role=""/>
+  <fontattributes font_colour="olive" font_size="8x12" font_style="normal" font_type="latin1" id="23104" language="" name="Fit8x12_olive" role=""/>
+  <fontattributes font_colour="black" font_size="12x16" font_style="normal" font_type="latin1" id="23105" language="" name="Fit12x16_black" role=""/>
+  <fontattributes font_colour="white" font_size="12x16" font_style="normal" font_type="latin1" id="23106" language="" name="Fit12x16_white" role=""/>
+  <fontattributes font_colour="green" font_size="12x16" font_style="normal" font_type="latin1" id="23107" language="" name="Fit12x16_green" role=""/>
+  <fontattributes font_colour="teal" font_size="12x16" font_style="normal" font_type="latin1" id="23108" language="" name="Fit12x16_teal" role=""/>
+  <fontattributes font_colour="olive" font_size="12x16" font_style="normal" font_type="latin1" id="23109" language="" name="Fit12x16_olive" role=""/>
 
   <!-- ═══════════════════════════════════════════════════════════
        DATA MASK 1 - RUN SCREEN (HOME)
@@ -341,7 +351,6 @@
     <include_object id="11008" name="Label_VacActual" role=""/>
     <include_object id="21005" name="Num_VacActual" role=""/>
     <include_object id="11019" name="Label_VacActualUnit" role=""/>
-    <include_object id="7001" name="Divider_Mid1" role=""/>
     <!-- Bulk Fill Section -->
     <include_object id="11005" name="Label_FanSection" role=""/>
     <include_object id="6042" name="Btn_FanPower" role=""/>
@@ -353,9 +362,7 @@
     <include_object id="11029" name="Label_FanActual" role=""/>
     <include_object id="21003" name="Num_FanRPMActual" role=""/>
     <include_object id="11018" name="Label_FanActualUnit" role=""/>
-    <include_object id="7002" name="Divider_Mid2" role=""/>
     <!-- Marker Section -->
-    <include_object id="11006" name="Label_MarkerSection" role=""/>
     <include_object id="6060" name="Btn_MarkerPrev" role=""/>
     <include_object id="6061" name="Btn_MarkerToggle" role=""/>
     <include_object id="6062" name="Btn_MarkerNext" role=""/>

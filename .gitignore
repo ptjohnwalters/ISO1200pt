@@ -49,6 +49,9 @@ Makefile
 
 # Doxygen
 *docs
+!docs/
+!docs/vt_preview/
+!docs/vt_preview/*.png
 
 # PlatformIO
 .pio
