@@ -6,7 +6,9 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 POOL_XML = REPOSITORY_ROOT / "object_pool"
+POOL_XML_COPY = REPOSITORY_ROOT / "ISO1200PT"
 POOL_IOP = REPOSITORY_ROOT / "examples/1200PT/src/object_pool/object_pool.iop"
+POOL_HEADER = REPOSITORY_ROOT / "examples/1200PT/include/objectPoolObjects.h"
 MAIN_CPP = (REPOSITORY_ROOT / "examples/1200PT/src/main.cpp").read_text()
 FOLD_CPP = (REPOSITORY_ROOT / "examples/1200PT/src/fold_sequence.cpp").read_text()
 
@@ -74,6 +76,95 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertIn("fan_vac_update();\n", MAIN_CPP)
         self.assertIn("update_display_values();\n", MAIN_CPP)
         self.assertIn("vTaskDelay(pdMS_TO_TICKS(PID_UPDATE_INTERVAL));", MAIN_CPP)
+
+    def test_calibration_screen_has_four_compact_coloured_set_rows(self):
+        self.assertEqual(POOL_XML.read_bytes(), POOL_XML_COPY.read_bytes())
+        root = ET.parse(POOL_XML).getroot()
+        objects = {
+            element.get("name"): element
+            for element in root.iter()
+            if element.tag != "include_object"
+        }
+        fonts = {element.get("name"): element for element in root.findall("fontattributes")}
+        rows = (
+            ("FullRaise", "FULL RAISE", "black", 132, "Btn_CalSetFullRaise", "95"),
+            ("LimitedRaise", "LIMITED RAISE", "green", 172, "Btn_CalSetLimitedRaise", "75"),
+            ("StartPlant", "START PLANT", "teal", 212, "Btn_CalSetStartPlant", "15"),
+            ("StopPlant", "STOP PLANT", "olive", 252, "Btn_CalSetStopPlant", "0"),
+        )
+        for suffix, label, colour, y, button_name, default_value in rows:
+            label_object = objects[f"Label_Cal{suffix}"]
+            self.assertEqual(label_object.get("value"), label)
+            self.assertEqual(fonts[label_object.get("font_attributes")].get("font_colour"), colour)
+            self.assertEqual(int(label_object.get("y")), y)
+
+            number = objects[f"Num_Cal{suffix}"]
+            self.assertEqual(number.get("value"), default_value)
+            self.assertEqual(number.get("max_value"), "100")
+            self.assertEqual(int(number.get("y")), y)
+
+            button = objects[button_name]
+            self.assertEqual(button.get("background_colour"), "green")
+            self.assertEqual(
+                (int(button.get("x")), int(button.get("y")), int(button.get("width")), int(button.get("height"))),
+                (390, y, 64, 32),
+            )
+            button_label = objects[button[0].get("name")]
+            self.assertEqual(button_label.get("value"), "SET")
+
+        self.assertEqual(objects["Label_FramePos"].get("value"), "FRAME POSITION:")
+        self.assertEqual(objects["Num_CalPosition"].get("x"), "210")
+        self.assertEqual(objects["Num_CalPosition"].get("y"), "86")
+        self.assertEqual(objects["Divider_Cal2"].get("y"), "298")
+        self.assertEqual(objects["Str_CalFaultMessage"].get("y"), "334")
+
+        jog_buttons = {
+            name: (element.get("x"), element.get("y"), element.get("width"), element.get("height"))
+            for name, element in objects.items()
+            if name in {"Btn_PlantLower", "Btn_PlantLimitedLift", "Btn_PlantFullLift"}
+        }
+        self.assertEqual(
+            jog_buttons,
+            {
+                "Btn_PlantLower": ("20", "390", "135", "65"),
+                "Btn_PlantLimitedLift": ("170", "390", "140", "65"),
+                "Btn_PlantFullLift": ("325", "390", "135", "65"),
+            },
+        )
+        self.assertFalse(
+            any(name and ("Zero" in name or "SensorRaw" in name) for name in objects)
+        )
+        self.assertNotIn(b"ZERO SENSOR", POOL_IOP.read_bytes())
+
+    def test_four_calibration_handlers_persist_and_validate_plant_order(self):
+        header = POOL_HEADER.read_text()
+        for button, point in (
+            ("FullRaise", "FullRaise"),
+            ("LimitedRaise", "LimitedRaise"),
+            ("StartPlant", "StartPlant"),
+            ("StopPlant", "StopPlant"),
+        ):
+            self.assertIn(f"Button_CalSet{button}", header)
+            self.assertIn(
+                f"save_calibration_point(\n                calibration::Point::{point},",
+                MAIN_CPP,
+            )
+
+        start_handler = MAIN_CPP.split("case Button_CalSetStartPlant:", 1)[1].split("case Button_CalSetStopPlant:", 1)[0]
+        stop_handler = MAIN_CPP.split("case Button_CalSetStopPlant:", 1)[1].split("default:", 1)[0]
+        self.assertIn("calibration::Point::StartPlant", start_handler)
+        self.assertIn("calibration::Point::StopPlant", stop_handler)
+        self.assertIn("calibration::load_points", MAIN_CPP)
+        self.assertIn("calibration::save_point", MAIN_CPP)
+        self.assertIn("nvs_get_u8", MAIN_CPP)
+        self.assertIn("nvs_set_u8", MAIN_CPP)
+        self.assertIn("nvs_commit", MAIN_CPP)
+        self.assertIn("const uint32_t position = 15 + ((step * 80) / FOLD_STEPS);", MAIN_CPP)
+        self.assertIn("const uint32_t position = 95 - ((step * 80) / UNFOLD_STEPS);", MAIN_CPP)
+        self.assertIn("if (position + 5 >= fullRaise)", MAIN_CPP)
+        self.assertNotIn("plant_control_", start_handler + stop_handler)
+        for removed_symbol in ("Button_CalZero", "Button_CalSetTransport", "Button_CalSetPlant"):
+            self.assertNotIn(removed_symbol, MAIN_CPP)
 
 
 if __name__ == "__main__":

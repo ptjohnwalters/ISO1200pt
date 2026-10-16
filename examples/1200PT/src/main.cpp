@@ -15,8 +15,12 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 
 #include "objectPoolObjects.h"
+#include "calibration_settings.h"
 #include "fold_sequence.h"
 #include "plant_control.h"
 #include "fan_vac_control.h"
@@ -25,6 +29,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 
 // ─── ISOBUS CLIENT INSTANCES ───────────────────────────────────────────
@@ -70,10 +75,13 @@ enum class MarkerState
 static MarkerState markerState = MarkerState::OFF;
 
 // ─── CALIBRATION STATE ───────────────────────────────────────────────────────────────
-static uint32_t calPosition = 50;
-static uint32_t calTransportLimit = 95;
-static uint32_t calPlantLimit = 15;
-static uint32_t calSensorRaw = 2048;
+static std::atomic<uint32_t> calPosition{50};
+static calibration::Points calibrationPoints;
+static nvs_handle_t calibrationNvsHandle = 0;
+static bool calibrationNvsReady = false;
+static std::mutex calibrationMutex;
+static std::mutex calStatusMutex;
+static int64_t calStatusClearAtUs = 0;
 
 // ─── FORWARD DECLARATIONS ──────────────────────────────────────────────────────────────
 void update_display_values();
@@ -83,11 +91,128 @@ void reset_action_buttons();
 void handle_unfold_action_button(uint8_t actionIndex);
 void handle_fold_action_button(uint8_t actionIndex);
 
+static void initialize_calibration_storage()
+{
+    esp_err_t result = nvs_flash_init();
+    if ((ESP_ERR_NVS_NO_FREE_PAGES == result) || (ESP_ERR_NVS_NEW_VERSION_FOUND == result))
+    {
+        result = nvs_flash_erase();
+        if (ESP_OK == result)
+        {
+            result = nvs_flash_init();
+        }
+    }
+    if (ESP_OK != result)
+    {
+        ESP_LOGE("ISO1200PT", "Failed to initialize calibration NVS: %s", esp_err_to_name(result));
+        return;
+    }
+
+    result = nvs_open("calibration", NVS_READWRITE, &calibrationNvsHandle);
+    if (ESP_OK != result)
+    {
+        ESP_LOGE("ISO1200PT", "Failed to open calibration NVS: %s", esp_err_to_name(result));
+        return;
+    }
+
+    calibrationNvsReady = true;
+    calibrationPoints = calibration::load_points([](const char *key, std::uint8_t &value) {
+        return ESP_OK == nvs_get_u8(calibrationNvsHandle, key, &value);
+    });
+}
+
+static void set_calibration_status(const char *message, bool transient)
+{
+    std::lock_guard<std::mutex> lock(calStatusMutex);
+    calStatusClearAtUs = transient ? esp_timer_get_time() + 3000000 : 0;
+    if (virtualTerminalClient != nullptr)
+    {
+        virtualTerminalClient->send_change_string_value(VarStr_CalFaultMessage, message);
+    }
+}
+
+static bool persist_calibration_value(const char *key, uint32_t value, uint32_t previousValue)
+{
+    if (!calibrationNvsReady)
+    {
+        return false;
+    }
+
+    esp_err_t result = nvs_set_u8(calibrationNvsHandle, key, static_cast<uint8_t>(value));
+    if (ESP_OK != result)
+    {
+        ESP_LOGE("ISO1200PT", "Failed to stage calibration %s: %s", key, esp_err_to_name(result));
+        return false;
+    }
+    result = nvs_commit(calibrationNvsHandle);
+    if (ESP_OK != result)
+    {
+        ESP_LOGE("ISO1200PT", "Failed to save calibration %s: %s", key, esp_err_to_name(result));
+        if (ESP_OK == nvs_set_u8(calibrationNvsHandle, key, static_cast<uint8_t>(previousValue)))
+        {
+            nvs_commit(calibrationNvsHandle);
+        }
+        return false;
+    }
+    return true;
+}
+
+static void save_calibration_point(calibration::Point point, uint16_t objectId, uint32_t newValue)
+{
+    calibration::SaveResult result;
+    {
+        std::lock_guard<std::mutex> lock(calibrationMutex);
+        const std::uint8_t previousValue = calibration::value(calibrationPoints, point);
+        result = calibration::save_point(
+            point,
+            static_cast<std::uint8_t>(newValue),
+            calibrationPoints,
+            [previousValue](const char *key, std::uint8_t value) {
+                return persist_calibration_value(key, value, previousValue);
+            }
+        );
+    }
+
+    if (calibration::SaveResult::InvalidOrder == result)
+    {
+        const char *message = (calibration::Point::StartPlant == point)
+            ? "START PLANT MUST BE >= STOP PLANT"
+            : "STOP PLANT MUST BE <= START PLANT";
+        set_calibration_status(message, true);
+        return;
+    }
+    if (calibration::SaveResult::Saved != result)
+    {
+        set_calibration_status("CALIBRATION SAVE FAILED", true);
+        return;
+    }
+    if (virtualTerminalUpdateHelper != nullptr)
+    {
+        virtualTerminalUpdateHelper->set_numeric_value(objectId, newValue);
+    }
+    set_calibration_status("STATUS: OK - NO ACTIVE FAULTS", false);
+}
+
 // ─── DISPLAY UPDATE FUNCTION ──────────────────────────────────────────────────────────
 // Pushes current sensor values and status to InCommand display
 void update_display_values()
 {
     if (virtualTerminalUpdateHelper == nullptr) return;
+
+    {
+        std::lock_guard<std::mutex> lock(calStatusMutex);
+        if ((calStatusClearAtUs > 0) && (esp_timer_get_time() >= calStatusClearAtUs))
+        {
+            calStatusClearAtUs = 0;
+            if (virtualTerminalClient != nullptr)
+            {
+                virtualTerminalClient->send_change_string_value(
+                    VarStr_CalFaultMessage,
+                    "STATUS: OK - NO ACTIVE FAULTS"
+                );
+            }
+        }
+    }
 
     FanVacStatus fanVacStatus = fan_vac_get_status();
 
@@ -123,10 +248,9 @@ void update_display_values()
             VarNum_FoldStep,
             step
         );
-        calPosition = 15 + ((step * 80) / FOLD_STEPS);
-        calSensorRaw = (calPosition * 4095) / 100;
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
+        const uint32_t position = 15 + ((step * 80) / FOLD_STEPS);
+        calPosition.store(position);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, position);
     }
     else if (fold_sequence_get_state() == SequenceState::UNFOLD_ACTIVE)
     {
@@ -135,20 +259,27 @@ void update_display_values()
             VarNum_UnfoldStep,
             step
         );
-        calPosition = 95 - ((step * 80) / UNFOLD_STEPS);
-        calSensorRaw = (calPosition * 4095) / 100;
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, calPosition);
-        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalSensorRaw, calSensorRaw);
+        const uint32_t position = 95 - ((step * 80) / UNFOLD_STEPS);
+        calPosition.store(position);
+        virtualTerminalUpdateHelper->set_numeric_value(VarNum_CalPosition, position);
     }
 
     if (virtualTerminalClient != nullptr)
     {
         const char *stateStr = "MID RANGE";
-        if (calPosition >= calTransportLimit - 5)
+        const uint32_t position = calPosition.load();
+        uint8_t fullRaise = calibration::FULL_RAISE_DEFAULT;
+        uint8_t startPlant = calibration::START_PLANT_DEFAULT;
+        {
+            std::lock_guard<std::mutex> lock(calibrationMutex);
+            fullRaise = calibrationPoints.fullRaise;
+            startPlant = calibrationPoints.startPlant;
+        }
+        if (position + 5 >= fullRaise)
         {
             stateStr = "TRANSPORT RANGE";
         }
-        else if (calPosition <= calPlantLimit + 5)
+        else if (position <= startPlant + 5)
         {
             stateStr = "PLANT RANGE";
         }
@@ -601,32 +732,35 @@ void handle_button_event(
         break;
 
         // ── CALIBRATION BUTTONS ───────────────────────────────────────────────
-        case Button_CalSetTransport:
-            calTransportLimit = calPosition;
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_CalTransportLimit,
-                calTransportLimit
+        case Button_CalSetFullRaise:
+            save_calibration_point(
+                calibration::Point::FullRaise,
+                VarNum_CalFullRaise,
+                calPosition.load()
             );
             break;
 
-        case Button_CalSetPlant:
-            calPlantLimit = calPosition;
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_CalPlantLimit,
-                calPlantLimit
+        case Button_CalSetLimitedRaise:
+            save_calibration_point(
+                calibration::Point::LimitedRaise,
+                VarNum_CalLimitedRaise,
+                calPosition.load()
             );
             break;
 
-        case Button_CalZero:
-            calPosition = 0;
-            calSensorRaw = 0;
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_CalPosition,
-                calPosition
+        case Button_CalSetStartPlant:
+            save_calibration_point(
+                calibration::Point::StartPlant,
+                VarNum_CalStartPlant,
+                calPosition.load()
             );
-            virtualTerminalUpdateHelper->set_numeric_value(
-                VarNum_CalSensorRaw,
-                calSensorRaw
+            break;
+
+        case Button_CalSetStopPlant:
+            save_calibration_point(
+                calibration::Point::StopPlant,
+                VarNum_CalStopPlant,
+                calPosition.load()
             );
             break;
 
@@ -642,6 +776,8 @@ extern "C" const std::uint8_t object_pool_end[]   asm("_binary_object_pool_iop_e
 extern "C" void app_main()
 {
     constexpr auto TAG = "ISO1200PT_MCP2515";
+
+    initialize_calibration_storage();
 
     // ── MCP2515 SPI CAN HARDWARE SETUP ──────────────────────────────────────────
     ESP_LOGI(TAG, "Configuring MCP2515 over SPI (host=%d, SCK=%d, MOSI=%d, MISO=%d, CS=%d, INT=%d, bitrate=250000, osc=8MHz)",
@@ -800,10 +936,14 @@ extern "C" void app_main()
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_FanRPMActual,      0);
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacTarget,         VAC_PRESSURE_DEFAULT);
     virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_VacActual,         0);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPosition,       calPosition);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalTransportLimit, calTransportLimit);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPlantLimit,     calPlantLimit);
-    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalSensorRaw,      calSensorRaw);
+    virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalPosition,       calPosition.load());
+    {
+        std::lock_guard<std::mutex> lock(calibrationMutex);
+        virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalFullRaise,      calibrationPoints.fullRaise);
+        virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalLimitedRaise,   calibrationPoints.limitedRaise);
+        virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStartPlant,     calibrationPoints.startPlant);
+        virtualTerminalUpdateHelper->add_tracked_numeric_value(VarNum_CalStopPlant,      calibrationPoints.stopPlant);
+    }
     virtualTerminalUpdateHelper->initialize();
 
     // ── MODULE INITIALIZATION ─────────────────────────────────────────────────────

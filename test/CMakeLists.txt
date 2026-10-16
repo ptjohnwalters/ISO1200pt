@@ -61,6 +61,7 @@ set(TEST_SRC
     can_message_tests.cpp
     heartbeat_tests.cpp
     tc_server_tests.cpp
+    calibration_settings_tests.cpp
     helpers/test_time_source.cpp
     helpers/control_function_helpers.cpp
     helpers/messaging_helpers.cpp)
@@ -75,6 +76,7 @@ target_link_libraries(
   unit_tests
   PRIVATE GTest::gtest_main ${PROJECT_NAME}::Isobus
           ${PROJECT_NAME}::HardwareIntegration ${PROJECT_NAME}::Utility)
+target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/examples/1200PT/include)
 
 include(GoogleTest)
 gtest_discover_tests(unit_tests name_tests identifier_tests)

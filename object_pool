@@ -143,14 +143,17 @@
   <!-- ═══════════════════════════════════════════════════════════
        BUTTONS - Calibration & Planter Controls
   ═══════════════════════════════════════════════════════════ -->
-  <button background_colour="green" border_colour="black" height="36" id="6070" key_code="0" latchable="no" name="Btn_CalSetTransport" width="180" x="280" y="166">
-    <include_object id="11038" name="Label_BtnSetHigh" role=""/>
+  <button background_colour="green" border_colour="black" height="32" id="6070" key_code="0" latchable="no" name="Btn_CalSetFullRaise" width="64" x="390" y="132">
+    <include_object id="11038" name="Label_BtnSetFullRaise" role=""/>
   </button>
-  <button background_colour="green" border_colour="black" height="36" id="6071" key_code="0" latchable="no" name="Btn_CalSetPlant" width="180" x="280" y="210">
-    <include_object id="11039" name="Label_BtnSetLow" role=""/>
+  <button background_colour="green" border_colour="black" height="32" id="6071" key_code="0" latchable="no" name="Btn_CalSetLimitedRaise" width="64" x="390" y="172">
+    <include_object id="11039" name="Label_BtnSetLimitedRaise" role=""/>
   </button>
-  <button background_colour="yellow" border_colour="black" height="36" id="6072" key_code="0" latchable="no" name="Btn_CalZero" width="180" x="280" y="254">
-    <include_object id="11040" name="Label_BtnZero" role=""/>
+  <button background_colour="green" border_colour="black" height="32" id="6072" key_code="0" latchable="no" name="Btn_CalSetStartPlant" width="64" x="390" y="212">
+    <include_object id="11040" name="Label_BtnSetStartPlant" role=""/>
+  </button>
+  <button background_colour="green" border_colour="black" height="32" id="6073" key_code="0" latchable="no" name="Btn_CalSetStopPlant" width="64" x="390" y="252">
+    <include_object id="11068" name="Label_BtnSetStopPlant" role=""/>
   </button>
 
   <button background_colour="yellow" border_colour="black" height="65" id="6032" key_code="0" latchable="no" name="Btn_PlantLower" width="135" x="20" y="390">
@@ -195,12 +198,14 @@
 
   <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11011" language="" length="15" name="Label_FramePos" options="" value="FRAME POSITION:" vertical_justification="top" width="180" x="20" y="88"/>
   <outputstring background_colour="silver" font_attributes="FontMedium" height="30" horizontal_justification="left" id="11017" language="" length="2" name="Label_CalPercent" options="" value="%" vertical_justification="top" width="30" x="275" y="88"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="26" horizontal_justification="left" id="11012" language="" length="25" name="Label_SavedMarks" options="" value="SAVED CALIBRATION MARKS:" vertical_justification="top" width="400" x="15" y="135"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="28" horizontal_justification="left" id="11013" language="" length="15" name="Label_TransportLimit" options="" value="TRANSPORT (UP):" vertical_justification="top" width="160" x="20" y="172"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="28" horizontal_justification="left" id="11014" language="" length="15" name="Label_PlantLimit" options="" value="PLANT (DOWN):" vertical_justification="top" width="160" x="20" y="216"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="28" horizontal_justification="left" id="11015" language="" length="16" name="Label_SensorRaw" options="" value="SENSOR RAW ADC:" vertical_justification="top" width="160" x="20" y="260"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="28" horizontal_justification="left" id="11048" language="" length="2" name="Label_TransPercent" options="" value="%" vertical_justification="top" width="20" x="245" y="172"/>
-  <outputstring background_colour="silver" font_attributes="FontSmall" height="28" horizontal_justification="left" id="11049" language="" length="2" name="Label_PlantPercent" options="" value="%" vertical_justification="top" width="20" x="245" y="216"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11012" language="" length="10" name="Label_CalFullRaise" options="" value="FULL RAISE" vertical_justification="middle" width="180" x="20" y="132"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall_Green" height="32" horizontal_justification="left" id="11013" language="" length="13" name="Label_CalLimitedRaise" options="" value="LIMITED RAISE" vertical_justification="middle" width="180" x="20" y="172"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall_Teal" height="32" horizontal_justification="left" id="11014" language="" length="11" name="Label_CalStartPlant" options="" value="START PLANT" vertical_justification="middle" width="180" x="20" y="212"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall_Olive" height="32" horizontal_justification="left" id="11015" language="" length="10" name="Label_CalStopPlant" options="" value="STOP PLANT" vertical_justification="middle" width="180" x="20" y="252"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11048" language="" length="2" name="Label_CalFullRaisePercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="132"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11049" language="" length="2" name="Label_CalLimitedPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="172"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11066" language="" length="2" name="Label_CalStartPlantPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="212"/>
+  <outputstring background_colour="silver" font_attributes="FontSmall" height="32" horizontal_justification="left" id="11067" language="" length="2" name="Label_CalStopPlantPercent" options="" value="%" vertical_justification="middle" width="20" x="278" y="252"/>
   <outputstring background_colour="silver" font_attributes="FontSmall" height="24" horizontal_justification="left" id="11016" language="" length="25" name="Label_Diagnostics" options="" value="SYSTEM STATUS &amp; FAULTS:" vertical_justification="top" width="300" x="15" y="306"/>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -235,9 +240,10 @@
   <outputstring background_colour="white" font_attributes="FontMedium" height="55" horizontal_justification="centred" id="11035" language="" length="6" name="Label_BtnPrev" options="" value="PREV" vertical_justification="middle" width="110" x="0" y="0"/>
   <outputstring background_colour="red" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11036" language="" length="8" name="Label_BtnCancel" options="" value="CANCEL" vertical_justification="middle" width="110" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11037" language="" length="10" name="Label_BtnNextStep" options="" value="NEXT STEP" vertical_justification="middle" width="190" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="36" horizontal_justification="centred" id="11038" language="" length="15" name="Label_BtnSetHigh" options="" value="SET TRANSPORT" vertical_justification="middle" width="180" x="0" y="0"/>
-  <outputstring background_colour="green" font_attributes="FontSmall_White" height="36" horizontal_justification="centred" id="11039" language="" length="15" name="Label_BtnSetLow" options="" value="SET PLANT" vertical_justification="middle" width="180" x="0" y="0"/>
-  <outputstring background_colour="yellow" font_attributes="FontSmall" height="36" horizontal_justification="centred" id="11040" language="" length="15" name="Label_BtnZero" options="" value="ZERO SENSOR" vertical_justification="middle" width="180" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11038" language="" length="4" name="Label_BtnSetFullRaise" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11039" language="" length="4" name="Label_BtnSetLimitedRaise" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11040" language="" length="4" name="Label_BtnSetStartPlant" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontSmall_White" height="32" horizontal_justification="centred" id="11068" language="" length="4" name="Label_BtnSetStopPlant" options="" value="SET" vertical_justification="middle" width="64" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="FontSmall_White" height="65" horizontal_justification="centred" id="11041" language="" length="14" name="Label_BtnLimitedLift" options="" value="LIMITED LIFT" vertical_justification="middle" width="140" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="FontSmall_White" height="65" horizontal_justification="centred" id="11042" language="" length="10" name="Label_BtnFullLift" options="" value="FULL LIFT" vertical_justification="middle" width="135" x="0" y="0"/>
   <outputstring background_colour="yellow" font_attributes="FontSmall" height="65" horizontal_justification="centred" id="11043" language="" length="6" name="Label_BtnLower" options="" value="LOWER" vertical_justification="middle" width="135" x="0" y="0"/>
@@ -296,9 +302,10 @@
   <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21004" max_value="100" min_value="0" name="Num_VacTarget" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" width="60" x="215" y="90"/>
   <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21005" max_value="100" min_value="0" name="Num_VacActual" number_of_decimals="0" offset="0" options="" scale="1.0" value="22" width="60" x="215" y="133"/>
   <outputnumber background_colour="white" font_attributes="FontMedium" format="%4d" height="34" horizontal_justification="centred" id="21010" max_value="100" min_value="0" name="Num_CalPosition" number_of_decimals="0" offset="0" options="" scale="1.0" value="50" width="60" x="210" y="86"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="30" horizontal_justification="centred" id="21011" max_value="100" min_value="0" name="Num_CalTransportLimit" number_of_decimals="0" offset="0" options="" scale="1.0" value="95" width="50" x="190" y="170"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="30" horizontal_justification="centred" id="21012" max_value="100" min_value="0" name="Num_CalPlantLimit" number_of_decimals="0" offset="0" options="" scale="1.0" value="15" width="50" x="190" y="214"/>
-  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="30" horizontal_justification="centred" id="21013" max_value="4095" min_value="0" name="Num_CalSensorRaw" number_of_decimals="0" offset="0" options="" scale="1.0" value="2048" width="75" x="190" y="258"/>
+  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21011" max_value="100" min_value="0" name="Num_CalFullRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="95" width="50" x="222" y="132"/>
+  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21012" max_value="100" min_value="0" name="Num_CalLimitedRaise" number_of_decimals="0" offset="0" options="" scale="1.0" value="75" width="50" x="222" y="172"/>
+  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21014" max_value="100" min_value="0" name="Num_CalStartPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="15" width="50" x="222" y="212"/>
+  <outputnumber background_colour="white" font_attributes="FontSmall" format="%4d" height="32" horizontal_justification="centred" id="21015" max_value="100" min_value="0" name="Num_CalStopPlant" number_of_decimals="0" offset="0" options="" scale="1.0" value="0" width="50" x="222" y="252"/>
 
   <!-- ═══════════════════════════════════════════════════════════
        FONT ATTRIBUTES
@@ -309,6 +316,9 @@
   <fontattributes font_colour="white" font_size="16x16" font_style="normal" font_type="latin1" id="23003" language="" name="FontSmall_White" role=""/>
   <fontattributes font_colour="white" font_size="24x32" font_style="normal" font_type="latin1" id="23004" language="" name="FontMedium_White" role=""/>
   <fontattributes font_colour="white" font_size="32x48" font_style="normal" font_type="latin1" id="23005" language="" name="FontLarge_White" role=""/>
+  <fontattributes font_colour="green" font_size="16x16" font_style="normal" font_type="latin1" id="23006" language="" name="FontSmall_Green" role=""/>
+  <fontattributes font_colour="teal" font_size="16x16" font_style="normal" font_type="latin1" id="23007" language="" name="FontSmall_Teal" role=""/>
+  <fontattributes font_colour="olive" font_size="16x16" font_style="normal" font_type="latin1" id="23008" language="" name="FontSmall_Olive" role=""/>
 
   <!-- ═══════════════════════════════════════════════════════════
        DATA MASK 1 - RUN SCREEN (HOME)
@@ -427,19 +437,23 @@
     <include_object id="11017" name="Label_CalPercent" role=""/>
     <include_object id="22020" name="Str_CalPositionState" role=""/>
     <include_object id="7004" name="Divider_Cal1" role=""/>
-    <!-- Saved Marks & SET Rows -->
-    <include_object id="11012" name="Label_SavedMarks" role=""/>
-    <include_object id="11013" name="Label_TransportLimit" role=""/>
-    <include_object id="21011" name="Num_CalTransportLimit" role=""/>
-    <include_object id="11048" name="Label_TransPercent" role=""/>
-    <include_object id="6070" name="Btn_CalSetTransport" role=""/>
-    <include_object id="11014" name="Label_PlantLimit" role=""/>
-    <include_object id="21012" name="Num_CalPlantLimit" role=""/>
-    <include_object id="11049" name="Label_PlantPercent" role=""/>
-    <include_object id="6071" name="Btn_CalSetPlant" role=""/>
-    <include_object id="11015" name="Label_SensorRaw" role=""/>
-    <include_object id="21013" name="Num_CalSensorRaw" role=""/>
-    <include_object id="6072" name="Btn_CalZero" role=""/>
+    <!-- Four saved calibration points -->
+    <include_object id="11012" name="Label_CalFullRaise" role=""/>
+    <include_object id="21011" name="Num_CalFullRaise" role=""/>
+    <include_object id="11048" name="Label_CalFullRaisePercent" role=""/>
+    <include_object id="6070" name="Btn_CalSetFullRaise" role=""/>
+    <include_object id="11013" name="Label_CalLimitedRaise" role=""/>
+    <include_object id="21012" name="Num_CalLimitedRaise" role=""/>
+    <include_object id="11049" name="Label_CalLimitedPercent" role=""/>
+    <include_object id="6071" name="Btn_CalSetLimitedRaise" role=""/>
+    <include_object id="11014" name="Label_CalStartPlant" role=""/>
+    <include_object id="21014" name="Num_CalStartPlant" role=""/>
+    <include_object id="11066" name="Label_CalStartPlantPercent" role=""/>
+    <include_object id="6072" name="Btn_CalSetStartPlant" role=""/>
+    <include_object id="11015" name="Label_CalStopPlant" role=""/>
+    <include_object id="21015" name="Num_CalStopPlant" role=""/>
+    <include_object id="11067" name="Label_CalStopPlantPercent" role=""/>
+    <include_object id="6073" name="Btn_CalSetStopPlant" role=""/>
     <include_object id="7005" name="Divider_Cal2" role=""/>
     <!-- Status / Diagnostics Banner -->
     <include_object id="11016" name="Label_Diagnostics" role=""/>
