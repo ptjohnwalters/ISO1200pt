@@ -12,19 +12,40 @@ _spec.loader.exec_module(preview)
 
 OBJECTS, FONTS = preview.load_pool()
 
+MAIN_CPP = (REPOSITORY_ROOT / "examples/1200PT/src/main.cpp").read_text()
+UI_STATE_H = (REPOSITORY_ROOT / "examples/1200PT/include/ui_state.h").read_text()
+POOL_HEADER = (REPOSITORY_ROOT / "examples/1200PT/include/objectPoolObjects.h").read_text()
+
 # Strings written at runtime by examples/1200PT/src/main.cpp and fold_sequence.cpp.
 RUNTIME_STRINGS = {
     "Str_CalPositionState": ["MID RANGE", "TRANSPORT RANGE", "PLANT RANGE"],
-    "Str_CalFaultMessage": ["STATUS: OK - NO ACTIVE FAULTS", "CALIBRATION SAVE FAILED"],
-    "Str_MarkerStatus": ["MARKER: 1", "MARKER: 2", "MARKER: OFF"],
+    "Str_CalFaultMessage": ["STATUS: OK - NO ACTIVE FAULTS", "CALIBRATION SAVE FAILED",
+                            "START PLANT MUST BE >= STOP PLANT", "STOP PLANT MUST BE <= START PLANT"],
+    "Str_MarkerDetail": ["OFF", "LEFT", "RIGHT", "LEFT + RIGHT", "AUTO"],
     "Str_FoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE"],
     "Str_UnfoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE"],
-    "Label_BtnVacPower": ["ON", "OFF"],
-    "Label_BtnFanPower": ["ON", "OFF"],
+    "Str_CalBulkHeadland": ["ON", "OFF"],
 }
-for _prefix in ("Fold", "Unfold"):
-    for _i in range(1, 7):
-        RUNTIME_STRINGS[f"Str_{_prefix}Action{_i}"] = ["ACTIVATE", "STOP"]
+
+PALETTE_INDEX = {"black": 0, "white": 1, "green": 2, "silver": 7, "red": 12}
+# (button, label, dedicated font, default colour state) for every stateful button
+STATEFUL_BUTTONS = [
+    ("Btn_VacPower", "Label_BtnVacPower", "BtnFont_VacOn", "green"),
+    ("Btn_VacPowerOff", "Label_BtnVacPowerOff", "BtnFont_VacOff", "inactive"),
+    ("Btn_FanPower", "Label_BtnFanPower", "BtnFont_FanOn", "green"),
+    ("Btn_FanPowerOff", "Label_BtnFanPowerOff", "BtnFont_FanOff", "inactive"),
+    ("Btn_MarkerPrev", "Label_BtnPrev", "BtnFont_MarkerLeft", "inactive"),
+    ("Btn_MarkerToggle", "Str_MarkerStatus", "BtnFont_MarkerAuto", "inactive"),
+    ("Btn_MarkerNext", "Label_BtnNext", "BtnFont_MarkerRight", "inactive"),
+    ("Btn_CalBulkHeadland", "Str_CalBulkHeadland", "BtnFont_CalBulkHeadland", "inactive"),
+] + [
+    (f"Btn_{d}Action{i}", f"Str_{d}Action{i}", f"BtnFont_{d}Action{i}", "inactive")
+    for d in ("Unfold", "Fold") for i in range(1, 7)
+]
+UNFOLD_ROWS = [("ROTATE BAR", "BACK"), ("SET ROTATE LOCK", "BACK"), ("RETRACT TONGUE", "FORWARD"),
+               ("SET TONGUE LOCK", "FORWARD"), ("INNER MARKER", "FORWARD"), ("BAR RAISE", "LIMITED")]
+FOLD_ROWS = [("BAR RAISE", "FULL"), ("INNER MARKER", "BACK"), ("EXTEND TONGUE", "BACK"),
+             ("SET TONGUE LOCK", "FLOAT"), ("ROTATE BAR", "FORWARD"), ("SET ROTATE LOCK", "FORWARD")]
 
 NEW_FONTS = {
     "Fit8x12_black": ("23100", "8x12", "black"),
@@ -72,8 +93,17 @@ class VtLayoutTests(unittest.TestCase):
             )
 
     def test_included_outputs_use_only_fit_fonts(self):
+        button_fonts = {font for _, _, font, _ in STATEFUL_BUTTONS}
         for mask, element, _ in output_objects_in_masks():
-            self.assertIn(element.get("font_attributes"), NEW_FONTS, f"{mask}:{element.get('name')}")
+            font = element.get("font_attributes")
+            self.assertTrue(font in NEW_FONTS or font in button_fonts, f"{mask}:{element.get('name')}")
+            if font in button_fonts:
+                size = FONTS[font].get("font_size")
+                if size == "24x32":
+                    # the only allowed legacy 24x32 font: the marker "<" and ">"
+                    self.assertIn(element.get("value"), ("<", ">"), element.get("name"))
+                else:
+                    self.assertEqual(size, "12x16", f"{mask}:{element.get('name')}")
 
     def test_text_fits_object_width_and_height(self):
         for mask, element, box in output_objects_in_masks():
@@ -121,7 +151,7 @@ class VtLayoutTests(unittest.TestCase):
         self.assertEqual(geometry("Divider_Top"), (0, 68, 480, 3))
         self.assertEqual(geometry("Divider_Fold"), (0, 404, 480, 3))
         self.assertEqual(geometry("Divider_Cal1"), (0, 140, 480, 3))
-        self.assertEqual(geometry("Divider_Cal2"), (0, 308, 480, 3))
+        self.assertEqual(geometry("Divider_Cal2"), (0, 352, 480, 3))
 
     def test_run_layout(self):
         sections = (
@@ -135,7 +165,12 @@ class VtLayoutTests(unittest.TestCase):
         for (y0, title, power, minus, target, unit, plus, rate, rate_text, actual, actual_text,
              actual_num, actual_unit) in sections:
             self.assertEqual(geometry(f"Label_{title}"), (20, y0, 211, 18))
-            self.assertEqual(geometry(power), (20, y0 + 22, 211, 32))
+            self.assertEqual(geometry(power), (20, y0 + 22, 102, 32))
+            self.assertEqual(geometry(power + "Off"), (129, y0 + 22, 102, 32))
+            self.assertEqual(preview.rect(OBJECTS[f"Label_Btn{title[:-7]}Power"]), (0, 0, 102, 32))
+            self.assertEqual(preview.rect(OBJECTS[f"Label_Btn{title[:-7]}PowerOff"]), (0, 0, 102, 32))
+            self.assertEqual(OBJECTS[f"Label_Btn{title[:-7]}Power"].get("value"), "ON")
+            self.assertEqual(OBJECTS[f"Label_Btn{title[:-7]}PowerOff"].get("value"), "OFF")
             self.assertEqual(geometry(rate), (20, y0 + 64, 211, 16))
             self.assertEqual(OBJECTS[rate].get("value"), rate_text)
             self.assertEqual(geometry(minus), (20, y0 + 84, 30, 38))
@@ -150,6 +185,13 @@ class VtLayoutTests(unittest.TestCase):
         self.assertEqual(geometry("Btn_MarkerToggle"), (165, 412, 150, 42))
         self.assertEqual(geometry("Btn_MarkerNext"), (325, 412, 80, 42))
         self.assertEqual(geometry("Str_MarkerDetail"), (20, 458, 440, 16))
+        self.assertEqual(OBJECTS["Label_BtnPrev"].get("value"), "<")
+        self.assertEqual(OBJECTS["Str_MarkerStatus"].get("value"), "MARKER")
+        self.assertEqual(OBJECTS["Label_BtnNext"].get("value"), ">")
+        self.assertEqual(OBJECTS["Str_MarkerStatus"].get("font_attributes"), "BtnFont_MarkerAuto")
+        self.assertEqual(FONTS["BtnFont_MarkerAuto"].get("font_size"), "12x16")
+        self.assertEqual(FONTS["BtnFont_MarkerLeft"].get("font_size"), "24x32")
+        self.assertEqual(FONTS["BtnFont_MarkerRight"].get("font_size"), "24x32")
         included = {c.get("name") for c in OBJECTS["DataMask_Run"] if c.tag == "include_object"}
         for removed in ("Divider_Mid1", "Divider_Mid2", "Label_MarkerSection"):
             self.assertNotIn(removed, included)
@@ -164,6 +206,12 @@ class VtLayoutTests(unittest.TestCase):
                 self.assertEqual(geometry(f"Label_{direction}Step{i + 1}"), (26, ry + 10, 320, 16))
                 self.assertEqual(geometry(f"Btn_{direction}Action{i + 1}"), (354, ry + 8, 100, 34))
                 self.assertEqual(geometry(f"Str_{direction}Action{i + 1}"), (0, 0, 100, 34))
+            rows = UNFOLD_ROWS if direction == "Unfold" else FOLD_ROWS
+            for i, (label, text) in enumerate(rows):
+                self.assertEqual(OBJECTS[f"Label_{direction}Step{i + 1}"].get("value"), label)
+                self.assertEqual(OBJECTS[f"Str_{direction}Action{i + 1}"].get("value"), text)
+                self.assertEqual(FONTS[OBJECTS[f"Str_{direction}Action{i + 1}"].get("font_attributes")]
+                                 .get("font_size"), "12x16")
 
     def test_cal_layout(self):
         self.assertEqual(geometry("Label_CalTitle"), (20, 79, 240, 20))
@@ -181,12 +229,81 @@ class VtLayoutTests(unittest.TestCase):
             self.assertEqual(geometry(percent), (294, y, 24, 30))
             self.assertEqual(geometry(f"Btn_CalSet{key}"), (340, y, 110, 30))
             self.assertEqual(geometry(f"Label_BtnSet{key}"), (0, 0, 110, 30))
-        self.assertEqual(geometry("Label_Diagnostics"), (20, 314, 300, 18))
-        self.assertEqual(geometry("Str_CalFaultMessage"), (20, 334, 440, 30))
+        self.assertEqual(geometry("Label_CalBulkHeadland"), (20, 310, 220, 30))
+        self.assertEqual(OBJECTS["Label_CalBulkHeadland"].get("value"), "BULK FILL HEADLAND")
+        self.assertEqual(OBJECTS["Label_CalBulkHeadland"].get("font_attributes"), "Fit12x16_black")
+        self.assertEqual(geometry("Btn_CalBulkHeadland"), (340, 310, 110, 30))
+        self.assertEqual(geometry("Str_CalBulkHeadland"), (0, 0, 110, 30))
+        self.assertEqual(OBJECTS["Str_CalBulkHeadland"].get("value"), "OFF")
+        self.assertEqual(geometry("Label_Diagnostics"), (20, 358, 300, 18))
+        self.assertEqual(geometry("Str_CalFaultMessage"), (20, 378, 440, 30))
+        included = {c.get("name") for c in OBJECTS["DataMask_Cal"] if c.tag == "include_object"}
+        for removed in ("Btn_PlantLower", "Btn_PlantLimitedLift", "Btn_PlantFullLift"):
+            self.assertNotIn(removed, included)
+            self.assertIn(removed, OBJECTS)
         self.assertEqual(geometry("Btn_PlantLower"), (15, 390, 150, 65))
         self.assertEqual(geometry("Btn_PlantLimitedLift"), (165, 390, 150, 65))
         self.assertEqual(geometry("Btn_PlantFullLift"), (315, 390, 150, 65))
         self.assertEqual(OBJECTS["Label_BtnLower"].get("font_attributes"), "Fit12x16_black")
+
+    def test_stateful_buttons_have_dedicated_label_font_and_palette_defaults(self):
+        used_fonts = []
+        for button, label, font, default in STATEFUL_BUTTONS:
+            element = OBJECTS[button]
+            self.assertEqual(element.get("border_colour"), "black", button)
+            children = [c.get("name") for c in element if c.tag == "include_object"]
+            self.assertEqual(children, [label], button)
+            self.assertEqual(OBJECTS[label].get("font_attributes"), font, button)
+            used_fonts.append(font)
+            background, text = {"green": ("green", "white"), "inactive": ("silver", "black")}[default]
+            self.assertEqual(element.get("background_colour"), background, button)
+            self.assertEqual(OBJECTS[label].get("background_colour"), background, button)
+            self.assertEqual(FONTS[font].get("font_colour"), text, button)
+        # fonts are never shared, so a colour change only affects its own button
+        self.assertEqual(len(used_fonts), len(set(used_fonts)))
+        users = [e.get("name") for e in OBJECTS.values()
+                 if e.get("font_attributes") in used_fonts]
+        self.assertEqual(len(users), len(used_fonts))
+
+    def test_runtime_palette_constants_match_the_button_palette(self):
+        for name, colour in (("SILVER", "silver"), ("BLACK", "black"), ("GREEN", "green"),
+                             ("WHITE", "white"), ("RED", "red")):
+            self.assertIn(f"COLOUR_{name} = {PALETTE_INDEX[colour]};", UI_STATE_H)
+        self.assertIn("return { COLOUR_GREEN, COLOUR_WHITE };", UI_STATE_H)
+        self.assertIn("return { COLOUR_RED, COLOUR_WHITE };", UI_STATE_H)
+        self.assertIn("return { COLOUR_SILVER, COLOUR_BLACK };", UI_STATE_H)
+
+    def test_every_stateful_button_has_a_handler_and_runtime_colour_sync(self):
+        handler = MAIN_CPP.split("void handle_button_event(", 1)[1].split("// ─── MAIN ENTRY POINT", 1)[0]
+        for case in ("Button_VacPower", "Button_VacPowerOff", "Button_FanPower", "Button_FanPowerOff",
+                     "Button_MarkerPrev", "Button_MarkerToggle", "Button_MarkerNext",
+                     "Button_CalBulkHeadland"):
+            self.assertIn(f"case {case}:", handler)
+        for i in range(1, 7):
+            self.assertIn(f"case Button_UnfoldAction{i}:", handler)
+            self.assertIn(f"case Button_FoldAction{i}:", handler)
+        for visual in ("VAC_ON_VISUAL", "VAC_OFF_VISUAL", "FAN_ON_VISUAL", "FAN_OFF_VISUAL",
+                       "MARKER_LEFT_VISUAL", "MARKER_AUTO_VISUAL", "MARKER_RIGHT_VISUAL", "HEADLAND_VISUAL"):
+            self.assertIn(f"static const ButtonVisual {visual}", MAIN_CPP)
+        # colour sync: button + label background, font colour, fallback command
+        for call in ("send_change_background_colour(visual.button", "send_change_background_colour(visual.label",
+                     "send_change_attribute(", "send_change_font_attributes("):
+            self.assertIn(call, MAIN_CPP)
+        # resync on boot/reconnect/pool upload (connected edge), screen shown, VT mask change
+        self.assertIn("if (vtConnected && !wasVtConnected)", MAIN_CPP)
+        self.assertEqual(MAIN_CPP.count("sync_screen_buttons(ActiveScreen::"), 8 + 4)
+        self.assertIn("add_listener(handle_active_mask_event)", MAIN_CPP)
+
+    def test_new_ids_are_in_the_object_pool_header(self):
+        for name in ("Button_VacPowerOff", "Button_FanPowerOff", "Button_CalBulkHeadland",
+                     "OutStr_BtnVacPowerOff", "OutStr_BtnFanPowerOff", "OutStr_CalBulkHeadland",
+                     "VarStr_CalBulkHeadland", "FontAttr_BtnVacOn", "FontAttr_BtnCalBulkHeadland"):
+            self.assertRegex(POOL_HEADER, rf"#define {name}\s+\d+")
+        for name, button_id in (("Btn_VacPowerOff", "6053"), ("Btn_FanPowerOff", "6043"),
+                                ("Btn_CalBulkHeadland", "6074")):
+            self.assertEqual(OBJECTS[name].get("id"), button_id)
+        for _, _, font, _ in STATEFUL_BUTTONS:
+            self.assertIn(f'name="{font}"', (REPOSITORY_ROOT / "object_pool").read_text())
 
     def test_object_pool_copies_and_iop_are_in_sync(self):
         self.assertEqual((REPOSITORY_ROOT / "object_pool").read_bytes(),
@@ -196,7 +313,7 @@ class VtLayoutTests(unittest.TestCase):
             self.assertIn(struct.pack("<HB", int(font_id), 23), iop, name)
 
     def test_previews_exist(self):
-        for key in preview.MASKS:
+        for key in list(preview.MASKS) + list(preview.VARIANTS):
             data = (REPOSITORY_ROOT / "docs" / "vt_preview" / f"{key}.png").read_bytes()
             self.assertEqual(struct.unpack(">II", data[16:24]), (480, 480))
 

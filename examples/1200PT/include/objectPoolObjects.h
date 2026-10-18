@@ -69,23 +69,26 @@
 // ─── BULK FILL (FAN) BUTTONS ─────────────────────────────────────────────────
 #define Button_FanSpeedUp            6040   // Increase fan target RPM
 #define Button_FanSpeedDown          6041   // Decrease fan target RPM
-#define Button_FanPower              6042   // Toggle Fan On/Off
+#define Button_FanPower              6042   // Fan power ON button (explicit ON)
+#define Button_FanPowerOff           6043   // Fan power OFF button (explicit OFF)
 
 // ─── VACUUM BUTTONS ──────────────────────────────────────────────────────────
 #define Button_VacPressureUp         6050   // Increase vac target pressure
 #define Button_VacPressureDown       6051   // Decrease vac target pressure
-#define Button_VacPower              6052   // Toggle Vac On/Off
+#define Button_VacPower              6052   // Vac power ON button (explicit ON)
+#define Button_VacPowerOff           6053   // Vac power OFF button (explicit OFF)
 
 // ─── MARKER CONTROL BUTTONS ──────────────────────────────────────────────────
-#define Button_MarkerPrev            6060   // Marker cycle previous
-#define Button_MarkerToggle          6061   // Marker toggle / cycle
-#define Button_MarkerNext            6062   // Marker cycle next
+#define Button_MarkerPrev            6060   // Marker LEFT "<" independent toggle
+#define Button_MarkerToggle          6061   // Marker AUTO toggle ("MARKER")
+#define Button_MarkerNext            6062   // Marker RIGHT ">" independent toggle
 
 // ─── CALIBRATION BUTTONS ─────────────────────────────────────────────────────
 #define Button_CalSetFullRaise       6070
 #define Button_CalSetLimitedRaise    6071
 #define Button_CalSetStartPlant      6072
 #define Button_CalSetStopPlant       6073
+#define Button_CalBulkHeadland       6074   // Bulk fill headland ON/OFF toggle (stored only, not wired)
 
 // ─── DIVIDERS ────────────────────────────────────────────────────────────────
 #define Divider_Top                  7000
@@ -131,10 +134,10 @@
 // ─── BUTTON LABELS ───────────────────────────────────────────────────────────
 #define OutStr_BtnPlus               11030  // "+"
 #define OutStr_BtnMinus              11031  // "-"
-#define OutStr_BtnVacPower           11032  // "ON"
-#define OutStr_BtnFanPower           11033  // "ON"
-#define OutStr_BtnNext               11034  // "NEXT"
-#define OutStr_BtnPrev               11035  // "PREV"
+#define OutStr_BtnVacPower           11032  // "ON" (static)
+#define OutStr_BtnFanPower           11033  // "ON" (static)
+#define OutStr_BtnNext               11034  // ">" (marker RIGHT)
+#define OutStr_BtnPrev               11035  // "<" (marker LEFT)
 #define OutStr_BtnCancel             11036  // "CANCEL"
 #define OutStr_BtnNextStep           11037  // "NEXT STEP"
 #define OutStr_BtnSetFullRaise       11038  // "SET"
@@ -148,6 +151,9 @@
 #define OutStr_CalStartPlantPercent  11066  // "%"
 #define OutStr_CalStopPlantPercent   11067  // "%"
 #define OutStr_BtnSetStopPlant       11068  // "SET"
+#define OutStr_BtnVacPowerOff        11069  // "OFF"
+#define OutStr_BtnFanPowerOff        11070  // "OFF"
+#define OutStr_CalBulkHeadland       11071  // "BULK FILL HEADLAND"
 
 // ─── SOFTKEY LABELS ──────────────────────────────────────────────────────────
 #define OutStr_SKRun                 11044  // "RUN"
@@ -156,35 +162,36 @@
 #define OutStr_SKCal                 11047  // "CAL"
 
 // ─── HYDRAULIC STEP LABELS ───────────────────────────────────────────────────
-#define OutStr_UnfoldStep1           11050  // "1. Unlatch Wings & Wing Tilt"
-#define OutStr_UnfoldStep2           11051  // "2. Lower Planter"
-#define OutStr_UnfoldStep3           11052  // "3. Unfold Wings"
-#define OutStr_UnfoldStep4           11053  // "4. Unlatch Transport Hooks"
-#define OutStr_UnfoldStep5           11054  // "5. Rotate Bar"
-#define OutStr_UnfoldStep6           11055  // "6. Extend Tongue"
+#define OutStr_UnfoldStep1           11050  // "ROTATE BAR"
+#define OutStr_UnfoldStep2           11051  // "SET ROTATE LOCK"
+#define OutStr_UnfoldStep3           11052  // "RETRACT TONGUE"
+#define OutStr_UnfoldStep4           11053  // "SET TONGUE LOCK"
+#define OutStr_UnfoldStep5           11054  // "INNER MARKER"
+#define OutStr_UnfoldStep6           11055  // "BAR RAISE"
 
-#define OutStr_FoldStep1             11060  // "1. Retract Tongue"
-#define OutStr_FoldStep2             11061  // "2. Rotate Bar"
-#define OutStr_FoldStep3             11062  // "3. Latch Transport Hooks"
-#define OutStr_FoldStep4             11063  // "4. Fold Wings"
-#define OutStr_FoldStep5             11064  // "5. Raise Planter"
-#define OutStr_FoldStep6             11065  // "6. Latch Wings & Center Bar"
+#define OutStr_FoldStep1             11060  // "BAR RAISE"
+#define OutStr_FoldStep2             11061  // "INNER MARKER"
+#define OutStr_FoldStep3             11062  // "EXTEND TONGUE"
+#define OutStr_FoldStep4             11063  // "SET TONGUE LOCK"
+#define OutStr_FoldStep5             11064  // "ROTATE BAR"
+#define OutStr_FoldStep6             11065  // "SET ROTATE LOCK"
 
 // ─── VARIABLE STRINGS (Dynamic Text) ─────────────────────────────────────────
 #define VarStr_FoldInstruction       22000  // Current fold step instruction text
 #define VarStr_UnfoldInstruction     22001  // Current unfold step instruction text
 #define VarStr_PlantStatus           22002  // Current plant mode status
-#define VarStr_MarkerStatus          22010  // "MARKER: OFF", "MARKER: 1", "MARKER: 2"
-#define VarStr_MarkerDetail          22011  // "1 = LEFT     2 = RIGHT     OFF"
+#define VarStr_MarkerStatus          22010  // "MARKER" (static label of the AUTO button)
+#define VarStr_MarkerDetail          22011  // "OFF", "LEFT", "RIGHT", "LEFT + RIGHT", "AUTO"
 #define VarStr_CalPositionState      22020  // "MID RANGE", "PLANT RANGE", "TRANSPORT RANGE"
 #define VarStr_CalFaultMessage       22021  // "STATUS: OK - NO ACTIVE FAULTS"
-#define VarStr_UnfoldAction1         22030  // "ACTIVATE" / "STOP"
+#define VarStr_CalBulkHeadland       22022  // Bulk fill headland button text "OFF" / "ON"
+#define VarStr_UnfoldAction1         22030  // Static button text (see object_pool)
 #define VarStr_UnfoldAction2         22031
 #define VarStr_UnfoldAction3         22032
 #define VarStr_UnfoldAction4         22033
 #define VarStr_UnfoldAction5         22034
 #define VarStr_UnfoldAction6         22035
-#define VarStr_FoldAction1           22040  // "ACTIVATE" / "STOP"
+#define VarStr_FoldAction1           22040  // Static button text (see object_pool)
 #define VarStr_FoldAction2           22041
 #define VarStr_FoldAction3           22042
 #define VarStr_FoldAction4           22043
@@ -222,6 +229,31 @@
 #define FontAttr_Small_Green         23006
 #define FontAttr_Small_Teal          23007
 #define FontAttr_Small_Olive         23008
+
+// Fit fonts (text must satisfy len(text) * char_width <= object width)
+#define FontAttr_Fit8x12_Black       23100
+#define FontAttr_Fit8x12_White       23101
+#define FontAttr_Fit8x12_Green       23102
+#define FontAttr_Fit8x12_Teal        23103
+#define FontAttr_Fit8x12_Olive       23104
+#define FontAttr_Fit12x16_Black      23105
+#define FontAttr_Fit12x16_White      23106
+#define FontAttr_Fit12x16_Green      23107
+#define FontAttr_Fit12x16_Teal       23108
+#define FontAttr_Fit12x16_Olive      23109
+
+// Dedicated per-button fonts: colour is changed at runtime (Change Attribute,
+// AID 1) so each lit/unlit button owns exactly one font object.
+#define FontAttr_BtnVacOn            23110
+#define FontAttr_BtnVacOff           23111
+#define FontAttr_BtnFanOn            23112
+#define FontAttr_BtnFanOff           23113
+#define FontAttr_BtnMarkerLeft       23114  // 24x32, only for "<"
+#define FontAttr_BtnMarkerAuto       23115
+#define FontAttr_BtnMarkerRight      23116  // 24x32, only for ">"
+#define FontAttr_BtnUnfoldAction1    23117  // ..23122 = actions 1..6
+#define FontAttr_BtnFoldAction1      23123  // ..23128 = actions 1..6
+#define FontAttr_BtnCalBulkHeadland  23129
 
 // ─── LINE AND FILL ATTRIBUTES ────────────────────────────────────────────────
 #define LineAttr_Black               24000  // Black border line

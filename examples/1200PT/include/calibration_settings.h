@@ -115,4 +115,37 @@ SaveResult save_point(Point point, std::uint32_t newValue, Points &points, Write
     value(points, point) = static_cast<std::uint8_t>(newValue);
     return SaveResult::Saved;
 }
+
+// ─── BULK FILL HEADLAND ──────────────────────────────────────────────────────
+// Persisted next to the calibration points (same NVS namespace, u8 0 / 1).
+// This setting is stored and displayed only; it is not wired to any output.
+static constexpr bool BULK_FILL_HEADLAND_DEFAULT = false;
+
+inline const char *bulk_fill_headland_key()
+{
+    return "bulk_headland";
+}
+
+template <typename Reader>
+bool load_bulk_fill_headland(Reader read)
+{
+    std::uint8_t storedValue = 0;
+    if (!read(bulk_fill_headland_key(), storedValue) || (storedValue > 1))
+    {
+        return BULK_FILL_HEADLAND_DEFAULT;
+    }
+    return 1 == storedValue;
+}
+
+// Persists the requested state; the in-memory state only changes on success.
+template <typename Writer>
+SaveResult save_bulk_fill_headland(bool enabled, bool &state, Writer write)
+{
+    if (!write(bulk_fill_headland_key(), static_cast<std::uint8_t>(enabled ? 1 : 0)))
+    {
+        return SaveResult::StorageFailure;
+    }
+    state = enabled;
+    return SaveResult::Saved;
+}
 } // namespace calibration

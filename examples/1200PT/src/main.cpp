@@ -21,6 +21,7 @@
 
 #include "objectPoolObjects.h"
 #include "calibration_settings.h"
+#include "ui_state.h"
 #include "fold_sequence.h"
 #include "plant_control.h"
 #include "fan_vac_control.h"
@@ -65,14 +66,12 @@ enum class ActiveScreen
 static ActiveScreen currentScreen = ActiveScreen::RUN;
 static std::atomic<bool> hydraulicActuationInhibited{true};
 
-// ─── MARKER TRACKING ─────────────────────────────────────────────────────────────────
-enum class MarkerState
-{
-    OFF,
-    LEFT,
-    RIGHT
-};
-static MarkerState markerState = MarkerState::OFF;
+// ─── UI STATE ────────────────────────────────────────────────────────────────────────
+// VT-only state: which on-screen buttons are lit. The marker model is UI only
+// (there is no marker output module); see ui_state.h.
+static ui::MarkerModel markerModel;
+static ui::ActionSelection actionSelection;
+static std::mutex uiMutex;
 
 // ─── CALIBRATION STATE ───────────────────────────────────────────────────────────────
 static std::atomic<uint32_t> calPosition{50};
@@ -81,6 +80,8 @@ static nvs_handle_t calibrationNvsHandle = 0;
 static bool calibrationNvsReady = false;
 static std::mutex calibrationMutex;
 static std::mutex calStatusMutex;
+// Bulk fill headland: persisted and displayed only, NOT wired to any output.
+static std::atomic<bool> bulkFillHeadland{calibration::BULK_FILL_HEADLAND_DEFAULT};
 static int64_t calStatusClearAtUs = 0;
 
 // ─── FORWARD DECLARATIONS ──────────────────────────────────────────────────────────────
@@ -88,6 +89,7 @@ void update_display_values();
 void handle_softkey_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
 void handle_button_event(const isobus::VirtualTerminalClient::VTKeyEvent &event);
 void reset_action_buttons();
+bool bulk_fill_headland_enabled();
 void handle_unfold_action_button(uint8_t actionIndex);
 void handle_fold_action_button(uint8_t actionIndex);
 
@@ -119,6 +121,9 @@ static void initialize_calibration_storage()
     calibrationPoints = calibration::load_points([](const char *key, std::uint8_t &value) {
         return ESP_OK == nvs_get_u8(calibrationNvsHandle, key, &value);
     });
+    bulkFillHeadland.store(calibration::load_bulk_fill_headland([](const char *key, std::uint8_t &value) {
+        return ESP_OK == nvs_get_u8(calibrationNvsHandle, key, &value);
+    }));
 }
 
 static void set_calibration_status(const char *message, bool transient)
@@ -287,10 +292,35 @@ void update_display_values()
     }
 }
 
-// ─── HYDRAULIC ACTION BUTTON HELPERS ────────────────────────────────────────────────
-static uint8_t activeUnfoldAction = 0;
-static uint8_t activeFoldAction = 0;
+// ─── BUTTON VISUALS ────────────────────────────────────────────────────────────────────
+// Every stateful button owns a dedicated label and a dedicated font object, so a
+// state change is: Change Background Colour (button + label) and Change
+// Attribute AID 1 (font colour). If the VT reports Change Attribute as
+// unsupported, Change Font Attributes is used instead. Object pool defaults
+// already show the boot state; these commands re-assert it at runtime.
+struct ButtonVisual
+{
+    uint16_t button;
+    uint16_t label;
+    uint16_t font;
+    isobus::VirtualTerminalClient::FontSize fontSize;
+};
 
+static constexpr uint8_t FONT_COLOUR_ATTRIBUTE_ID = 1;
+static constexpr uint8_t FONT_TYPE_LATIN1 = 0;
+static constexpr auto FONT_12X16 = isobus::VirtualTerminalClient::FontSize::Size12x16;
+static constexpr auto FONT_24X32 = isobus::VirtualTerminalClient::FontSize::Size24x32;
+
+static const ButtonVisual VAC_ON_VISUAL = { Button_VacPower, OutStr_BtnVacPower, FontAttr_BtnVacOn, FONT_12X16 };
+static const ButtonVisual VAC_OFF_VISUAL = { Button_VacPowerOff, OutStr_BtnVacPowerOff, FontAttr_BtnVacOff, FONT_12X16 };
+static const ButtonVisual FAN_ON_VISUAL = { Button_FanPower, OutStr_BtnFanPower, FontAttr_BtnFanOn, FONT_12X16 };
+static const ButtonVisual FAN_OFF_VISUAL = { Button_FanPowerOff, OutStr_BtnFanPowerOff, FontAttr_BtnFanOff, FONT_12X16 };
+static const ButtonVisual MARKER_LEFT_VISUAL = { Button_MarkerPrev, OutStr_BtnPrev, FontAttr_BtnMarkerLeft, FONT_24X32 };
+static const ButtonVisual MARKER_AUTO_VISUAL = { Button_MarkerToggle, VarStr_MarkerStatus, FontAttr_BtnMarkerAuto, FONT_12X16 };
+static const ButtonVisual MARKER_RIGHT_VISUAL = { Button_MarkerNext, OutStr_BtnNext, FontAttr_BtnMarkerRight, FONT_24X32 };
+static const ButtonVisual HEADLAND_VISUAL = { Button_CalBulkHeadland, VarStr_CalBulkHeadland, FontAttr_BtnCalBulkHeadland, FONT_12X16 };
+
+// ─── HYDRAULIC ACTION BUTTON HELPERS ────────────────────────────────────────────────
 static const uint16_t UNFOLD_BTN_IDS[6] = {
     Button_UnfoldAction1, Button_UnfoldAction2, Button_UnfoldAction3,
     Button_UnfoldAction4, Button_UnfoldAction5, Button_UnfoldAction6
@@ -309,27 +339,191 @@ static const uint16_t FOLD_STR_IDS[6] = {
     VarStr_FoldAction4, VarStr_FoldAction5, VarStr_FoldAction6
 };
 
-void reset_action_buttons()
+static ButtonVisual action_visual(ui::ActionGroup group, uint8_t actionIndex)
 {
-    if (virtualTerminalClient != nullptr)
+    const uint8_t idx = actionIndex - 1;
+    if (ui::ActionGroup::Unfold == group)
     {
-        if (activeUnfoldAction >= 1 && activeUnfoldAction <= 6)
+        return { UNFOLD_BTN_IDS[idx], UNFOLD_STR_IDS[idx],
+                 static_cast<uint16_t>(FontAttr_BtnUnfoldAction1 + idx), FONT_12X16 };
+    }
+    return { FOLD_BTN_IDS[idx], FOLD_STR_IDS[idx],
+             static_cast<uint16_t>(FontAttr_BtnFoldAction1 + idx), FONT_12X16 };
+}
+
+static void apply_button_style(const ButtonVisual &visual, ui::ButtonStyle style)
+{
+    if (virtualTerminalClient == nullptr) return;
+
+    const ui::ButtonColours colours = ui::colours_for(style);
+    virtualTerminalClient->send_change_background_colour(visual.button, colours.background);
+    virtualTerminalClient->send_change_background_colour(visual.label, colours.background);
+    if (!virtualTerminalClient->send_change_attribute(
+            visual.font, FONT_COLOUR_ATTRIBUTE_ID, static_cast<std::uint32_t>(colours.text)))
+    {
+        virtualTerminalClient->send_change_font_attributes(
+            visual.font, colours.text, visual.fontSize, FONT_TYPE_LATIN1, 0);
+    }
+}
+
+// Sends only the action buttons whose style differs between two selections.
+static void apply_action_changes(const ui::ActionSelection &before, const ui::ActionSelection &after)
+{
+    for (uint8_t index = 1; index <= ui::ACTION_COUNT; index++)
+    {
+        for (ui::ActionGroup group : { ui::ActionGroup::Unfold, ui::ActionGroup::Fold })
         {
-            uint8_t idx = activeUnfoldAction - 1;
-            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
-        }
-        if (activeFoldAction >= 1 && activeFoldAction <= 6)
-        {
-            uint8_t idx = activeFoldAction - 1;
-            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
+            if (before.style(group, index) != after.style(group, index))
+            {
+                apply_button_style(action_visual(group, index), after.style(group, index));
+            }
         }
     }
-    activeUnfoldAction = 0;
-    activeFoldAction = 0;
+}
+
+static void sync_action_buttons(ui::ActionGroup group)
+{
+    ui::ActionSelection snapshot;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        snapshot = actionSelection;
+    }
+    for (uint8_t index = 1; index <= ui::ACTION_COUNT; index++)
+    {
+        apply_button_style(action_visual(group, index), snapshot.style(group, index));
+    }
+}
+
+static void sync_power_buttons()
+{
+    const bool vacOn = fan_vac_is_vac_on();
+    const bool fanOn = fan_vac_is_fan_on();
+    apply_button_style(VAC_ON_VISUAL, ui::power_on_style(vacOn));
+    apply_button_style(VAC_OFF_VISUAL, ui::power_off_style(vacOn));
+    apply_button_style(FAN_ON_VISUAL, ui::power_on_style(fanOn));
+    apply_button_style(FAN_OFF_VISUAL, ui::power_off_style(fanOn));
+}
+
+static void sync_marker_buttons()
+{
+    ui::MarkerModel snapshot;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        snapshot = markerModel;
+    }
+    apply_button_style(MARKER_LEFT_VISUAL, snapshot.left_style());
+    apply_button_style(MARKER_AUTO_VISUAL, snapshot.auto_style());
+    apply_button_style(MARKER_RIGHT_VISUAL, snapshot.right_style());
+    if (virtualTerminalClient != nullptr)
+    {
+        const auto sideCommand = snapshot.side_buttons_enabled()
+            ? isobus::VirtualTerminalClient::EnableDisableObjectCommand::EnableObject
+            : isobus::VirtualTerminalClient::EnableDisableObjectCommand::DisableObject;
+        virtualTerminalClient->send_enable_disable_object(Button_MarkerPrev, sideCommand);
+        virtualTerminalClient->send_enable_disable_object(Button_MarkerNext, sideCommand);
+        virtualTerminalClient->send_change_string_value(VarStr_MarkerDetail, snapshot.detail_text());
+    }
+}
+
+static void sync_headland_button()
+{
+    const bool enabled = bulkFillHeadland.load();
+    apply_button_style(HEADLAND_VISUAL, ui::headland_style(enabled));
+    if (virtualTerminalClient != nullptr)
+    {
+        virtualTerminalClient->send_change_string_value(VarStr_CalBulkHeadland, ui::headland_text(enabled));
+    }
+}
+
+static void sync_screen_buttons(ActiveScreen screen)
+{
+    switch (screen)
+    {
+        case ActiveScreen::RUN:
+            sync_power_buttons();
+            sync_marker_buttons();
+            break;
+        case ActiveScreen::UNFOLD:
+            sync_action_buttons(ui::ActionGroup::Unfold);
+            break;
+        case ActiveScreen::FOLD:
+            sync_action_buttons(ui::ActionGroup::Fold);
+            break;
+        case ActiveScreen::CAL:
+            sync_headland_button();
+            break;
+    }
+}
+
+static void sync_all_buttons()
+{
+    sync_power_buttons();
+    sync_marker_buttons();
+    sync_action_buttons(ui::ActionGroup::Unfold);
+    sync_action_buttons(ui::ActionGroup::Fold);
+    sync_headland_button();
+}
+
+// The VT told us which mask is now active (for example after an alarm mask or a
+// working set switch): re-assert the button visuals of that screen.
+void handle_active_mask_event(const isobus::VirtualTerminalClient::VTChangeActiveMaskEvent &event)
+{
+    switch (event.maskObjectID)
+    {
+        case DataMask_Run:
+            sync_screen_buttons(ActiveScreen::RUN);
+            break;
+        case DataMask_Unfold:
+            sync_screen_buttons(ActiveScreen::UNFOLD);
+            break;
+        case DataMask_Fold:
+            sync_screen_buttons(ActiveScreen::FOLD);
+            break;
+        case DataMask_Cal:
+            sync_screen_buttons(ActiveScreen::CAL);
+            break;
+        default:
+            break;
+    }
+}
+
+// Applies a press to the selection model and updates only the changed buttons.
+static void press_action_visual(ui::ActionGroup group, uint8_t actionIndex)
+{
+    ui::ActionSelection before;
+    ui::ActionSelection after;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        before = actionSelection;
+        actionSelection.press(group, actionIndex);
+        after = actionSelection;
+    }
+    apply_action_changes(before, after);
+}
+
+static bool is_action_lit(ui::ActionGroup group, uint8_t actionIndex)
+{
+    std::lock_guard<std::mutex> lock(uiMutex);
+    return actionSelection.is_lit(group, actionIndex);
+}
+
+static bool is_action_group_active(ui::ActionGroup group)
+{
+    std::lock_guard<std::mutex> lock(uiMutex);
+    return (0 != actionSelection.active_index()) && (group == actionSelection.active_group());
+}
+
+void reset_action_buttons()
+{
+    ui::ActionSelection before;
+    ui::ActionSelection after;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        before = actionSelection;
+        actionSelection.clear();
+        after = actionSelection;
+    }
+    apply_action_changes(before, after);
 }
 
 void handle_unfold_action_button(uint8_t actionIndex)
@@ -337,22 +531,19 @@ void handle_unfold_action_button(uint8_t actionIndex)
     if (actionIndex < 1 || actionIndex > 6) return;
     if (hydraulicActuationInhibited.load()) return;
 
-    if (activeFoldAction != 0)
+    if (is_action_group_active(ui::ActionGroup::Fold))
     {
         reset_action_buttons();
         fold_sequence_cancel();
     }
 
-    if (activeUnfoldAction == actionIndex)
+    if (is_action_lit(ui::ActionGroup::Unfold, actionIndex))
     {
         // Safe-stop toggle: pressing active action de-energizes it
         fold_sequence_cancel();
-        uint8_t idx = actionIndex - 1;
+        press_action_visual(ui::ActionGroup::Unfold, actionIndex);
         if (virtualTerminalClient != nullptr)
         {
-            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 2);
             virtualTerminalClient->send_change_string_value(
                 VarStr_UnfoldInstruction,
                 "HYDRAULICS SAFE - IDLE"
@@ -362,29 +553,15 @@ void handle_unfold_action_button(uint8_t actionIndex)
         {
             virtualTerminalUpdateHelper->set_numeric_value(VarNum_UnfoldStep, 0);
         }
-        activeUnfoldAction = 0;
     }
     else
     {
-        // De-energize previous action button display if active
-        if (activeUnfoldAction != 0 && virtualTerminalClient != nullptr)
-        {
-            uint8_t prevIdx = activeUnfoldAction - 1;
-            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[prevIdx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[prevIdx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[prevIdx], 2);
-        }
-
         // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
         fold_sequence_activate_unfold_action(actionIndex);
-        activeUnfoldAction = actionIndex;
+        press_action_visual(ui::ActionGroup::Unfold, actionIndex);
 
-        uint8_t idx = actionIndex - 1;
         if (virtualTerminalClient != nullptr)
         {
-            virtualTerminalClient->send_change_string_value(UNFOLD_STR_IDS[idx], "STOP");
-            virtualTerminalClient->send_change_background_colour(UNFOLD_BTN_IDS[idx], 12); // Red
-            virtualTerminalClient->send_change_background_colour(UNFOLD_STR_IDS[idx], 12);
             virtualTerminalClient->send_change_string_value(
                 VarStr_UnfoldInstruction,
                 fold_sequence_get_instruction()
@@ -402,22 +579,19 @@ void handle_fold_action_button(uint8_t actionIndex)
     if (actionIndex < 1 || actionIndex > 6) return;
     if (hydraulicActuationInhibited.load()) return;
 
-    if (activeUnfoldAction != 0)
+    if (is_action_group_active(ui::ActionGroup::Unfold))
     {
         reset_action_buttons();
         fold_sequence_cancel();
     }
 
-    if (activeFoldAction == actionIndex)
+    if (is_action_lit(ui::ActionGroup::Fold, actionIndex))
     {
         // Safe-stop toggle: pressing active action de-energizes it
         fold_sequence_cancel();
-        uint8_t idx = actionIndex - 1;
+        press_action_visual(ui::ActionGroup::Fold, actionIndex);
         if (virtualTerminalClient != nullptr)
         {
-            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 2);
             virtualTerminalClient->send_change_string_value(
                 VarStr_FoldInstruction,
                 "HYDRAULICS SAFE - IDLE"
@@ -427,29 +601,15 @@ void handle_fold_action_button(uint8_t actionIndex)
         {
             virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, 0);
         }
-        activeFoldAction = 0;
     }
     else
     {
-        // De-energize previous action button display if active
-        if (activeFoldAction != 0 && virtualTerminalClient != nullptr)
-        {
-            uint8_t prevIdx = activeFoldAction - 1;
-            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[prevIdx], "ACTIVATE");
-            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[prevIdx], 2); // Green
-            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[prevIdx], 2);
-        }
-
         // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
         fold_sequence_activate_fold_action(actionIndex);
-        activeFoldAction = actionIndex;
+        press_action_visual(ui::ActionGroup::Fold, actionIndex);
 
-        uint8_t idx = actionIndex - 1;
         if (virtualTerminalClient != nullptr)
         {
-            virtualTerminalClient->send_change_string_value(FOLD_STR_IDS[idx], "STOP");
-            virtualTerminalClient->send_change_background_colour(FOLD_BTN_IDS[idx], 12); // Red
-            virtualTerminalClient->send_change_background_colour(FOLD_STR_IDS[idx], 12);
             virtualTerminalClient->send_change_string_value(
                 VarStr_FoldInstruction,
                 fold_sequence_get_instruction()
@@ -460,6 +620,75 @@ void handle_fold_action_button(uint8_t actionIndex)
             virtualTerminalUpdateHelper->set_numeric_value(VarNum_FoldStep, actionIndex);
         }
     }
+}
+
+// ─── POWER / MARKER / HEADLAND HANDLERS ───────────────────────────────────────────
+// Explicit ON/OFF requests go through the existing toggle functions, which are
+// only called when the current state differs from the requested one.
+static void request_vac_power(bool requestedOn)
+{
+    ui::set_power_state(requestedOn, fan_vac_is_vac_on, fan_vac_toggle_vac_power);
+    sync_power_buttons();
+}
+
+static void request_fan_power(bool requestedOn)
+{
+    ui::set_power_state(requestedOn, fan_vac_is_fan_on, fan_vac_toggle_fan_power);
+    sync_power_buttons();
+}
+
+static void handle_marker_side_button(bool leftSide)
+{
+    bool changed;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        changed = leftSide ? markerModel.press_left() : markerModel.press_right();
+    }
+    if (changed)
+    {
+        sync_marker_buttons();
+    }
+}
+
+static void handle_marker_auto_button()
+{
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        markerModel.press_auto();
+    }
+    sync_marker_buttons();
+}
+
+static void toggle_bulk_fill_headland()
+{
+    const bool previousState = bulkFillHeadland.load();
+    bool newState = previousState;
+    calibration::SaveResult result;
+    {
+        std::lock_guard<std::mutex> lock(calibrationMutex);
+        result = calibration::save_bulk_fill_headland(
+            !previousState,
+            newState,
+            [previousState](const char *key, std::uint8_t value) {
+                return persist_calibration_value(key, value, previousState ? 1 : 0);
+            }
+        );
+    }
+    if (calibration::SaveResult::Saved == result)
+    {
+        bulkFillHeadland.store(newState);
+    }
+    else
+    {
+        set_calibration_status("CALIBRATION SAVE FAILED", true);
+    }
+    sync_headland_button();
+}
+
+// Getter only: the setting is not wired to any output.
+bool bulk_fill_headland_enabled()
+{
+    return bulkFillHeadland.load();
 }
 
 // ─── SOFTKEY EVENT HANDLER ──────────────────────────────────────────────────────────
@@ -483,6 +712,7 @@ void handle_softkey_event(
                 DataMask_Run
             );
             currentScreen = ActiveScreen::RUN;
+            sync_screen_buttons(ActiveScreen::RUN);
             break;
 
         case SoftKey_Unfold:
@@ -493,6 +723,7 @@ void handle_softkey_event(
                 DataMask_Unfold
             );
             currentScreen = ActiveScreen::UNFOLD;
+            sync_screen_buttons(ActiveScreen::UNFOLD);
             break;
 
         case SoftKey_Fold:
@@ -503,6 +734,7 @@ void handle_softkey_event(
                 DataMask_Fold
             );
             currentScreen = ActiveScreen::FOLD;
+            sync_screen_buttons(ActiveScreen::FOLD);
             break;
 
         case SoftKey_Cal:
@@ -513,6 +745,7 @@ void handle_softkey_event(
                 DataMask_Cal
             );
             currentScreen = ActiveScreen::CAL;
+            sync_screen_buttons(ActiveScreen::CAL);
             break;
 
         default:
@@ -542,6 +775,7 @@ void handle_button_event(
                 DataMask_Run
             );
             currentScreen = ActiveScreen::RUN;
+            sync_screen_buttons(ActiveScreen::RUN);
             break;
 
         case Button_TabUnfold:
@@ -552,6 +786,7 @@ void handle_button_event(
                 DataMask_Unfold
             );
             currentScreen = ActiveScreen::UNFOLD;
+            sync_screen_buttons(ActiveScreen::UNFOLD);
             break;
 
         case Button_TabFold:
@@ -562,6 +797,7 @@ void handle_button_event(
                 DataMask_Fold
             );
             currentScreen = ActiveScreen::FOLD;
+            sync_screen_buttons(ActiveScreen::FOLD);
             break;
 
         case Button_TabCal:
@@ -572,6 +808,7 @@ void handle_button_event(
                 DataMask_Cal
             );
             currentScreen = ActiveScreen::CAL;
+            sync_screen_buttons(ActiveScreen::CAL);
             break;
 
         // ── FOLD ACTION BUTTONS ─────────────────────────────────────────────────────
@@ -655,14 +892,11 @@ void handle_button_event(
             break;
 
         case Button_FanPower:
-            fan_vac_toggle_fan_power();
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    OutStr_BtnFanPower,
-                    fan_vac_is_fan_on() ? "ON" : "OFF"
-                );
-            }
+            request_fan_power(true);
+            break;
+
+        case Button_FanPowerOff:
+            request_fan_power(false);
             break;
 
         // ── VACUUM BUTTONS ────────────────────────────────────────────────────
@@ -683,53 +917,26 @@ void handle_button_event(
             break;
 
         case Button_VacPower:
-            fan_vac_toggle_vac_power();
-            if (virtualTerminalClient != nullptr)
-            {
-                virtualTerminalClient->send_change_string_value(
-                    OutStr_BtnVacPower,
-                    fan_vac_is_vac_on() ? "ON" : "OFF"
-                );
-            }
+            request_vac_power(true);
+            break;
+
+        case Button_VacPowerOff:
+            request_vac_power(false);
             break;
 
         // ── MARKER CONTROL BUTTONS ────────────────────────────────────────────
-        case Button_MarkerNext:
-        case Button_MarkerToggle:
-        {
-            if (markerState == MarkerState::OFF)
-                markerState = MarkerState::LEFT;
-            else if (markerState == MarkerState::LEFT)
-                markerState = MarkerState::RIGHT;
-            else
-                markerState = MarkerState::OFF;
-
-            if (virtualTerminalClient != nullptr)
-            {
-                const char *mStr = (markerState == MarkerState::LEFT) ? "MARKER: 1" :
-                                   (markerState == MarkerState::RIGHT) ? "MARKER: 2" : "MARKER: OFF";
-                virtualTerminalClient->send_change_string_value(VarStr_MarkerStatus, mStr);
-            }
-        }
-        break;
-
+        // UI state only: no marker output exists in this firmware.
         case Button_MarkerPrev:
-        {
-            if (markerState == MarkerState::OFF)
-                markerState = MarkerState::RIGHT;
-            else if (markerState == MarkerState::RIGHT)
-                markerState = MarkerState::LEFT;
-            else
-                markerState = MarkerState::OFF;
+            handle_marker_side_button(true);
+            break;
 
-            if (virtualTerminalClient != nullptr)
-            {
-                const char *mStr = (markerState == MarkerState::LEFT) ? "MARKER: 1" :
-                                   (markerState == MarkerState::RIGHT) ? "MARKER: 2" : "MARKER: OFF";
-                virtualTerminalClient->send_change_string_value(VarStr_MarkerStatus, mStr);
-            }
-        }
-        break;
+        case Button_MarkerNext:
+            handle_marker_side_button(false);
+            break;
+
+        case Button_MarkerToggle:
+            handle_marker_auto_button();
+            break;
 
         // ── CALIBRATION BUTTONS ───────────────────────────────────────────────
         case Button_CalSetFullRaise:
@@ -762,6 +969,10 @@ void handle_button_event(
                 VarNum_CalStopPlant,
                 calPosition.load()
             );
+            break;
+
+        case Button_CalBulkHeadland:
+            toggle_bulk_fill_headland();
             break;
 
         default:
@@ -922,6 +1133,8 @@ extern "C" void app_main()
                           .add_listener(handle_softkey_event);
     virtualTerminalClient->get_vt_button_event_dispatcher()
                           .add_listener(handle_button_event);
+    virtualTerminalClient->get_vt_change_active_mask_event_dispatcher()
+                          .add_listener(handle_active_mask_event);
     virtualTerminalClient->initialize(true);
 
     virtualTerminalUpdateHelper =
@@ -957,8 +1170,18 @@ extern "C" void app_main()
 
     // ── MAIN LOOP ─────────────────────��────────────────────────────────────────
     // Periodic control and VT updates run here, not on the FreeRTOS timer service task.
+    bool wasVtConnected = false;
     while (true)
     {
+        // The VT restores object defaults whenever the pool is (re)uploaded, so
+        // push every runtime button colour/state again once connected.
+        const bool vtConnected = virtualTerminalClient->get_is_connected();
+        if (vtConnected && !wasVtConnected)
+        {
+            sync_all_buttons();
+        }
+        wasVtConnected = vtConnected;
+
         fan_vac_update();
         const bool hydraulicControlAvailable = fan_vac_get_state() == FanVacState::RUNNING;
         const bool wasActuationInhibited = hydraulicActuationInhibited.exchange(!hydraulicControlAvailable);
