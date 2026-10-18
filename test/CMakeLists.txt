@@ -62,6 +62,7 @@ set(TEST_SRC
     heartbeat_tests.cpp
     tc_server_tests.cpp
     calibration_settings_tests.cpp
+    ui_state_tests.cpp
     helpers/test_time_source.cpp
     helpers/control_function_helpers.cpp
     helpers/messaging_helpers.cpp)

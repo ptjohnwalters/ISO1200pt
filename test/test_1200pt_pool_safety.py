@@ -41,7 +41,11 @@ class PoolSafetyTests(unittest.TestCase):
             for index in range(1, 7)
         }
         self.assertTrue(expected.issubset(names))
-        self.assertEqual(POOL_IOP.read_bytes().count(b"ACTIVATE"), 12)
+        iop = POOL_IOP.read_bytes()
+        for text in (b"ROTATE BAR", b"SET ROTATE LOCK", b"RETRACT TONGUE", b"SET TONGUE LOCK",
+                     b"INNER MARKER", b"BAR RAISE", b"EXTEND TONGUE", b"FORWARD", b"LIMITED",
+                     b"FLOAT", b"FULL"):
+            self.assertIn(text, iop)
 
     def test_each_action_clears_outputs_before_energizing(self):
         for direction in ("fold", "unfold"):
@@ -115,8 +119,8 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertEqual(objects["Label_FramePos"].get("value"), "FRAME POSITION:")
         self.assertEqual(objects["Num_CalPosition"].get("x"), "214")
         self.assertEqual(objects["Num_CalPosition"].get("y"), "101")
-        self.assertEqual(objects["Divider_Cal2"].get("y"), "308")
-        self.assertEqual(objects["Str_CalFaultMessage"].get("y"), "334")
+        self.assertEqual(objects["Divider_Cal2"].get("y"), "352")
+        self.assertEqual(objects["Str_CalFaultMessage"].get("y"), "378")
 
         jog_buttons = {
             name: (element.get("x"), element.get("y"), element.get("width"), element.get("height"))
@@ -165,6 +169,21 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertNotIn("plant_control_", start_handler + stop_handler)
         for removed_symbol in ("Button_CalZero", "Button_CalSetTransport", "Button_CalSetPlant"):
             self.assertNotIn(removed_symbol, MAIN_CPP)
+
+    def test_marker_and_headland_are_not_wired_to_outputs(self):
+        marker = MAIN_CPP.split("static void handle_marker_side_button", 1)[1].split("static void toggle_bulk_fill_headland", 1)[0]
+        for forbidden in ("fold_sequence_", "plant_control_", "fan_vac_", "gpio_set_level"):
+            self.assertNotIn(forbidden, marker)
+        headland = MAIN_CPP.split("static void toggle_bulk_fill_headland", 1)[1].split("bool bulk_fill_headland_enabled()", 1)[0]
+        for forbidden in ("fold_sequence_", "plant_control_", "fan_vac_", "gpio_set_level"):
+            self.assertNotIn(forbidden, headland)
+        self.assertEqual(MAIN_CPP.count("bulk_fill_headland_enabled()"), 2)  # declaration + definition only
+
+    def test_power_buttons_use_existing_toggle_path_with_explicit_state(self):
+        self.assertIn("ui::set_power_state(requestedOn, fan_vac_is_vac_on, fan_vac_toggle_vac_power);", MAIN_CPP)
+        self.assertIn("ui::set_power_state(requestedOn, fan_vac_is_fan_on, fan_vac_toggle_fan_power);", MAIN_CPP)
+        self.assertNotIn("fan_vac_toggle_vac_power();", MAIN_CPP)
+        self.assertNotIn("fan_vac_toggle_fan_power();", MAIN_CPP)
 
 
 if __name__ == "__main__":
