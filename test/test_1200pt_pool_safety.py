@@ -185,6 +185,26 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertNotIn("fan_vac_toggle_vac_power();", MAIN_CPP)
         self.assertNotIn("fan_vac_toggle_fan_power();", MAIN_CPP)
 
+    def test_action_button_visuals_are_only_changed_from_stored_selection(self):
+        display = MAIN_CPP.split("void update_display_values()", 1)[1].split("// ─── BUTTON VISUALS", 1)[0]
+        for forbidden in ("send_change_background_colour", "send_change_attribute", "apply_button_style", "FoldAction", "UnfoldAction"):
+            self.assertNotIn(forbidden, display)
+        loop = MAIN_CPP.split("// ── MAIN LOOP", 1)[1]
+        self.assertEqual(loop.count("reset_action_buttons();"), 1)  # hydraulic inhibit only
+        self.assertIn("actionSelection.styles(group, styles);", MAIN_CPP)
+        press = MAIN_CPP.split("static void press_action_visual", 1)[1].split("static bool is_action_lit", 1)[0]
+        self.assertIn("sync_action_buttons(group);", press)
+        self.assertNotIn("fold_sequence_", press)
+
+    def test_hydraulic_call_order_in_action_handlers_is_unchanged(self):
+        for direction in ("unfold", "fold"):
+            Direction = direction.capitalize()
+            body = MAIN_CPP.split(f"void handle_{direction}_action_button(uint8_t actionIndex)\n{{\n", 1)[1].split("\n}\n", 1)[0]
+            self.assertLess(
+                body.index(f"fold_sequence_activate_{direction}_action(actionIndex);"),
+                body.index(f"press_action_visual(ui::ActionGroup::{Direction}, actionIndex);", body.index(f"fold_sequence_activate_{direction}_action")),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

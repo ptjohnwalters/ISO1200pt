@@ -233,6 +233,17 @@ public:
         return is_lit(group, index) ? ButtonStyle::ActiveGreen : ButtonStyle::Inactive;
     }
 
+    // Style of all ACTION_COUNT buttons of one screen, derived only from the
+    // stored selection. Every re-send (press, periodic refresh, VT reconnect,
+    // screen shown, mask change) uses this, so none of them can reset a lit button.
+    void styles(ActionGroup group, ButtonStyle (&out)[ACTION_COUNT]) const
+    {
+        for (std::uint8_t index = 1; index <= ACTION_COUNT; index++)
+        {
+            out[index - 1] = style(group, index);
+        }
+    }
+
 private:
     ActionGroup activeGroup = ActionGroup::Unfold;
     std::uint8_t activeIndex = 0;
