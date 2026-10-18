@@ -175,6 +175,56 @@ TEST(UiStateTest, ClearingSelectionUnlightsEverythingAndInvalidIndexIsIgnored)
     }
 }
 
+// Simulated re-send paths (periodic refresh, VT reconnect, screen shown, mask
+// redraw, sequence complete) only read the stored selection.
+void expect_only_lit(const ActionSelection &selection, ActionGroup group, std::uint8_t litIndex)
+{
+    ButtonStyle styles[ACTION_COUNT];
+    selection.styles(group, styles);
+    int lit = 0;
+    for (std::uint8_t index = 1; index <= ACTION_COUNT; index++)
+    {
+        if (index == litIndex)
+        {
+            expect_colours(styles[index - 1], COLOUR_GREEN, COLOUR_WHITE);
+            lit++;
+        }
+        else
+        {
+            expect_colours(styles[index - 1], COLOUR_SILVER, COLOUR_BLACK);
+        }
+    }
+    EXPECT_LE(lit, 1);
+}
+
+TEST(UiStateTest, ActionSelectionSurvivesRefreshReconnectScreenShownAndSequenceComplete)
+{
+    for (ActionGroup group : { ActionGroup::Unfold, ActionGroup::Fold })
+    {
+        ActionSelection selection;
+        selection.press(group, 2);
+        for (int refresh = 0; refresh < 3; refresh++)
+        {
+            expect_only_lit(selection, group, 2);
+        }
+        EXPECT_EQ(2, selection.active_index());
+    }
+}
+
+TEST(UiStateTest, ActionPressSwitchesAndToggleOffOnBothScreens)
+{
+    for (ActionGroup group : { ActionGroup::Unfold, ActionGroup::Fold })
+    {
+        ActionSelection selection;
+        selection.press(group, 1);
+        selection.press(group, 4);
+        expect_only_lit(selection, group, 4);
+        selection.press(group, 4);
+        expect_only_lit(selection, group, 0);
+        EXPECT_EQ(0, selection.active_index());
+    }
+}
+
 TEST(UiStateTest, HeadlandButtonShowsOffSilverAndOnGreen)
 {
     expect_colours(headland_style(false), COLOUR_SILVER, COLOUR_BLACK);

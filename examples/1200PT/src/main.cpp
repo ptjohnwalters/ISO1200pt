@@ -383,14 +383,14 @@ static void apply_action_changes(const ui::ActionSelection &before, const ui::Ac
 
 static void sync_action_buttons(ui::ActionGroup group)
 {
-    ui::ActionSelection snapshot;
+    ui::ButtonStyle styles[ui::ACTION_COUNT];
     {
         std::lock_guard<std::mutex> lock(uiMutex);
-        snapshot = actionSelection;
+        actionSelection.styles(group, styles);
     }
     for (uint8_t index = 1; index <= ui::ACTION_COUNT; index++)
     {
-        apply_button_style(action_visual(group, index), snapshot.style(group, index));
+        apply_button_style(action_visual(group, index), styles[index - 1]);
     }
 }
 
@@ -487,18 +487,15 @@ void handle_active_mask_event(const isobus::VirtualTerminalClient::VTChangeActiv
     }
 }
 
-// Applies a press to the selection model and updates only the changed buttons.
+// Applies a press to the selection model, then re-sends every button of that
+// screen from the stored selection so a lost or reverted command is restored.
 static void press_action_visual(ui::ActionGroup group, uint8_t actionIndex)
 {
-    ui::ActionSelection before;
-    ui::ActionSelection after;
     {
         std::lock_guard<std::mutex> lock(uiMutex);
-        before = actionSelection;
         actionSelection.press(group, actionIndex);
-        after = actionSelection;
     }
-    apply_action_changes(before, after);
+    sync_action_buttons(group);
 }
 
 static bool is_action_lit(ui::ActionGroup group, uint8_t actionIndex)
