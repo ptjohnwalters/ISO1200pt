@@ -7,7 +7,7 @@
 #define PIN_VAC_PWM          26    // ESP32 GPIO26 - Vac proportional valve PWM
 
 // ─── ESP32 SENSOR INPUT PIN DEFINITIONS ──────────────────────────────────────
-#define PIN_FAN_RPM_SENSOR   34    // ESP32 GPIO34 - Fan RPM pulse input
+#define PIN_FAN_RPM_SENSOR   34    // ESP32 GPIO34 - Fan RPM pulse input; external 10k pull-up to 3.3V required
 #define PIN_VAC_PRESSURE     35    // ESP32 GPIO35 - Vac pressure analog input
 #define PIN_SBIN_SENSOR      36    // ESP32 GPIO36 - S bin empty digital input
 
