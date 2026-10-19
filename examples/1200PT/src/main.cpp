@@ -22,6 +22,7 @@
 #include "objectPoolObjects.h"
 #include "calibration_settings.h"
 #include "ui_state.h"
+#include "lockout_feedback.h"
 #include "fold_sequence.h"
 #include "plant_control.h"
 #include "fan_vac_control.h"
@@ -71,6 +72,7 @@ static std::atomic<bool> hydraulicActuationInhibited{true};
 // (there is no marker output module); see ui_state.h.
 static ui::MarkerModel markerModel;
 static ui::ActionSelection actionSelection;
+static ui::LockoutFeedback lockoutFeedback;
 static std::mutex uiMutex;
 
 // ─── CALIBRATION STATE ───────────────────────────────────────────────────────────────
@@ -523,10 +525,78 @@ void reset_action_buttons()
     apply_action_changes(before, after);
 }
 
+// ─── LOCKOUT FEEDBACK ────────────────────────────────────────────────────────────────
+// Display only. The hydraulicActuationInhibited interlock is not touched here.
+static void send_lockout_text(ui::ActionGroup group, ui::InhibitReason reason)
+{
+    if (virtualTerminalClient == nullptr) return;
+    const bool unfold = (ui::ActionGroup::Unfold == group);
+    virtualTerminalClient->send_change_string_value(unfold ? VarStr_UnfoldInstruction : VarStr_FoldInstruction,
+                                                    ui::lockout_message(reason));
+    virtualTerminalClient->send_change_string_value(unfold ? VarStr_UnfoldLockReason : VarStr_FoldLockReason,
+                                                    ui::lockout_reason_text(reason));
+}
+
+static void restore_lockout_text(ui::ActionGroup group)
+{
+    if (virtualTerminalClient == nullptr) return;
+    const bool unfold = (ui::ActionGroup::Unfold == group);
+    virtualTerminalClient->send_change_string_value(unfold ? VarStr_UnfoldInstruction : VarStr_FoldInstruction,
+                                                    ui::LOCKOUT_RESTORE_TEXT);
+    virtualTerminalClient->send_change_string_value(unfold ? VarStr_UnfoldLockReason : VarStr_FoldLockReason,
+                                                    ui::lockout_reason_text(ui::InhibitReason::None));
+}
+
+// Called for an action press ignored by the inhibit. The button is neither
+// selected nor actuated.
+static void show_blocked_press(ui::ActionGroup group)
+{
+    const ui::InhibitReason reason = ui::classify_inhibit(fan_vac_get_status());
+    bool show;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        show = lockoutFeedback.on_blocked_press(group, reason);
+    }
+    if (show)
+    {
+        send_lockout_text(group, reason);
+    }
+}
+
+// Called every main-loop iteration; logs only when the reason changes.
+static void update_lockout_feedback()
+{
+    const ui::InhibitReason reason = ui::classify_inhibit(fan_vac_get_status());
+    ui::LockoutFeedback::Update update;
+    {
+        std::lock_guard<std::mutex> lock(uiMutex);
+        update = lockoutFeedback.update(reason);
+    }
+    if (update.reasonChanged)
+    {
+        if (ui::InhibitReason::None == reason)
+        {
+            ESP_LOGI("ISO1200PT", "Hydraulic actuation inhibit ended: %s", ui::lockout_reason_log_name(reason));
+        }
+        else
+        {
+            ESP_LOGW("ISO1200PT", "Hydraulic actuation inhibited: %s", ui::lockout_reason_log_name(reason));
+        }
+    }
+    if (update.refreshUnfold) send_lockout_text(ui::ActionGroup::Unfold, reason);
+    if (update.refreshFold) send_lockout_text(ui::ActionGroup::Fold, reason);
+    if (update.restoreUnfold) restore_lockout_text(ui::ActionGroup::Unfold);
+    if (update.restoreFold) restore_lockout_text(ui::ActionGroup::Fold);
+}
+
 void handle_unfold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
-    if (hydraulicActuationInhibited.load()) return;
+    if (hydraulicActuationInhibited.load())
+    {
+        show_blocked_press(ui::ActionGroup::Unfold);
+        return;
+    }
 
     if (is_action_group_active(ui::ActionGroup::Fold))
     {
@@ -574,7 +644,11 @@ void handle_unfold_action_button(uint8_t actionIndex)
 void handle_fold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
-    if (hydraulicActuationInhibited.load()) return;
+    if (hydraulicActuationInhibited.load())
+    {
+        show_blocked_press(ui::ActionGroup::Fold);
+        return;
+    }
 
     if (is_action_group_active(ui::ActionGroup::Unfold))
     {
@@ -1187,6 +1261,7 @@ extern "C" void app_main()
             fold_sequence_cancel();
             reset_action_buttons();
         }
+        update_lockout_feedback();
         update_display_values();
 
         // Read S bin sensor and update plant control

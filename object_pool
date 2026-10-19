@@ -299,7 +299,9 @@
        VARIABLE STRINGS - Dynamic Runtime Text
   ═══════════════════════════════════════════════════════════ -->
   <outputstring background_colour="white" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="22000" language="" length="40" name="Str_FoldInstruction" options="" value="SELECT FOLD TO BEGIN" vertical_justification="middle" width="240" x="230" y="78"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="14" horizontal_justification="left" id="22003" language="" length="40" name="Str_FoldLockReason" options="" value=" " vertical_justification="middle" width="240" x="230" y="94"/>
   <outputstring background_colour="white" font_attributes="Fit8x12_black" height="16" horizontal_justification="left" id="22001" language="" length="40" name="Str_UnfoldInstruction" options="" value="SELECT UNFOLD TO BEGIN" vertical_justification="middle" width="240" x="230" y="78"/>
+  <outputstring background_colour="white" font_attributes="Fit8x12_black" height="14" horizontal_justification="left" id="22004" language="" length="40" name="Str_UnfoldLockReason" options="" value=" " vertical_justification="middle" width="240" x="230" y="94"/>
   <outputstring background_colour="silver" font_attributes="BtnFont_MarkerAuto" height="42" horizontal_justification="centred" id="22010" language="" length="15" name="Str_MarkerStatus" options="" value="MARKER" vertical_justification="middle" width="150" x="0" y="0"/>
   <outputstring background_colour="silver" font_attributes="Fit8x12_black" height="16" horizontal_justification="centred" id="22011" language="" length="35" name="Str_MarkerDetail" options="" value="OFF" vertical_justification="middle" width="440" x="20" y="458"/>
   <outputstring background_colour="white" font_attributes="Fit8x12_black" height="26" horizontal_justification="centred" id="22020" language="" length="20" name="Str_CalPositionState" options="" value="MID RANGE" vertical_justification="middle" width="144" x="316" y="105"/>
@@ -416,6 +418,7 @@
     <include_object id="7000" name="Divider_Top" role=""/>
     <include_object id="11002" name="Label_UnfoldTitle" role=""/>
     <include_object id="22001" name="Str_UnfoldInstruction" role=""/>
+    <include_object id="22004" name="Str_UnfoldLockReason" role=""/>
     <!-- Six Hydraulic Steps -->
     <include_object id="11050" name="Label_UnfoldStep1" role=""/>
     <include_object id="11051" name="Label_UnfoldStep2" role=""/>
@@ -445,6 +448,7 @@
     <include_object id="7000" name="Divider_Top" role=""/>
     <include_object id="11001" name="Label_FoldTitle" role=""/>
     <include_object id="22000" name="Str_FoldInstruction" role=""/>
+    <include_object id="22003" name="Str_FoldLockReason" role=""/>
     <!-- Six Hydraulic Steps -->
     <include_object id="11060" name="Label_FoldStep1" role=""/>
     <include_object id="11061" name="Label_FoldStep2" role=""/>
