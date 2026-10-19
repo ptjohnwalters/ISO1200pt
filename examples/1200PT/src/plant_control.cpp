@@ -2,15 +2,13 @@
 #include "fold_sequence.h"
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
+#include "mcp23017_output.h"
 
 // ─── MCP23017 ADDRESSES ───────────────────────────────────────────────────────
 // Same I2C bus as fold_sequence.cpp
 // Addresses already initialized in fold_sequence_init()
-#define MCP23017_1_ADDR     0x20
-#define MCP23017_2_ADDR     0x21
 #define MCP_GPIOA           0x12
 #define MCP_GPIOB           0x13
-#define I2C_PORT            I2C_NUM_0
 
 // ─── PLANT MODE SOLENOID STATES ───────────────────────────────────────────────
 // Columns = solenoids 1-18 (index 0 = solenoid 1)
@@ -39,20 +37,29 @@ static PlantStatus currentStatus = {
 // ─── PRIVATE HELPER FUNCTIONS ────────────────────────────────────────────────
 
 // Write a byte to MCP23017 register
-static void mcp23017_write_plant(uint8_t address, uint8_t reg, uint8_t value)
+static esp_err_t mcp23017_write_plant(uint8_t address, uint8_t reg, uint8_t value)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_write_byte(cmd, value, true);
-    i2c_master_stop(cmd);
-    i2c_master_cmd_begin(I2C_PORT, cmd, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
+    if ((MCP_GPIOA == reg) || (MCP_GPIOB == reg))
+    {
+        value = hardware::relay_output_byte(value);
+    }
+    return mcp23017_write_register_locked(address, reg, value);
 }
 
 // Apply solenoid state array to MCP23017 outputs
-static void apply_plant_solenoid_states(const bool states[PLANT_SOLENOID_COUNT])
+static esp_err_t write_plant_all_off_locked()
+{
+    esp_err_t result = ESP_OK;
+    const esp_err_t portAResult = mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOA, 0x00);
+    const esp_err_t portBResult = mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOB, 0x00);
+    const esp_err_t secondPortResult = mcp23017_write_plant(MCP23017_2_ADDR, MCP_GPIOA, 0x00);
+    if (ESP_OK != portAResult) result = portAResult;
+    if ((ESP_OK == result) && (ESP_OK != portBResult)) result = portBResult;
+    if ((ESP_OK == result) && (ESP_OK != secondPortResult)) result = secondPortResult;
+    return result;
+}
+
+static esp_err_t apply_plant_solenoid_states(const bool states[PLANT_SOLENOID_COUNT])
 {
     // Build port A byte for MCP23017 #1 (solenoids 1-8)
     uint8_t mcp1_portA = 0;
@@ -73,17 +80,18 @@ static void apply_plant_solenoid_states(const bool states[PLANT_SOLENOID_COUNT])
     if (states[16]) mcp2_portA |= (1 << 0);  // Solenoid 17
     if (states[17]) mcp2_portA |= (1 << 1);  // Solenoid 18
 
-    // Write to MCP23017 #1
-    mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOA, mcp1_portA);
-    mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOB, mcp1_portB);
-
-    // Write to MCP23017 #2
-    mcp23017_write_plant(MCP23017_2_ADDR, MCP_GPIOA, mcp2_portA);
+    MCP23017OutputLock lock;
+    if (!lock.is_locked()) return ESP_ERR_INVALID_STATE;
+    esp_err_t result = mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOA, mcp1_portA);
+    if (ESP_OK == result) result = mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOB, mcp1_portB);
+    if (ESP_OK == result) result = mcp23017_write_plant(MCP23017_2_ADDR, MCP_GPIOA, mcp2_portA);
+    if (ESP_OK != result) write_plant_all_off_locked();
+    return result;
 }
 
 // ─── PUBLIC FUNCTIONS ─────────────────────────────────────────────────────────
 
-void plant_control_init()
+esp_err_t plant_control_init()
 {
     // I2C already initialized in fold_sequence_init()
     // Just reset state and de-energize all solenoids
@@ -91,7 +99,7 @@ void plant_control_init()
     currentStatus.sensorSBinEmpty = false;
     currentStatus.isTransitioning = false;
 
-    plant_control_all_off();
+    return mcp23017_output_health().has_fault() ? ESP_FAIL : plant_control_all_off();
 }
 
 PlantMode plant_control_get_mode()
@@ -104,28 +112,31 @@ PlantStatus plant_control_get_status()
     return currentStatus;
 }
 
-void plant_control_set_limited_lift()
+esp_err_t plant_control_set_limited_lift()
 {
     currentStatus.isTransitioning = true;
     currentStatus.currentMode = PlantMode::LIMITED_LIFT;
-    apply_plant_solenoid_states(PLANT_LIMITED_LIFT_STATES);
+    const esp_err_t result = apply_plant_solenoid_states(PLANT_LIMITED_LIFT_STATES);
     currentStatus.isTransitioning = false;
+    return result;
 }
 
-void plant_control_set_full_lift()
+esp_err_t plant_control_set_full_lift()
 {
     currentStatus.isTransitioning = true;
     currentStatus.currentMode = PlantMode::FULL_LIFT;
-    apply_plant_solenoid_states(PLANT_FULL_LIFT_STATES);
+    const esp_err_t result = apply_plant_solenoid_states(PLANT_FULL_LIFT_STATES);
     currentStatus.isTransitioning = false;
+    return result;
 }
 
-void plant_control_set_lowered()
+esp_err_t plant_control_set_lowered()
 {
     currentStatus.isTransitioning = true;
     currentStatus.currentMode = PlantMode::LOWERED;
-    apply_plant_solenoid_states(PLANT_LOWERED_STATES);
+    const esp_err_t result = apply_plant_solenoid_states(PLANT_LOWERED_STATES);
     currentStatus.isTransitioning = false;
+    return result;
 }
 
 void plant_control_update_sbin(bool isEmpty)
@@ -133,31 +144,28 @@ void plant_control_update_sbin(bool isEmpty)
     currentStatus.sensorSBinEmpty = isEmpty;
 }
 
-void plant_control_apply_current_mode()
+esp_err_t plant_control_apply_current_mode()
 {
     switch (currentStatus.currentMode)
     {
         case PlantMode::LIMITED_LIFT:
-            apply_plant_solenoid_states(PLANT_LIMITED_LIFT_STATES);
-            break;
+            return apply_plant_solenoid_states(PLANT_LIMITED_LIFT_STATES);
 
         case PlantMode::FULL_LIFT:
-            apply_plant_solenoid_states(PLANT_FULL_LIFT_STATES);
-            break;
+            return apply_plant_solenoid_states(PLANT_FULL_LIFT_STATES);
 
         case PlantMode::LOWERED:
         case PlantMode::IDLE:
         default:
-            apply_plant_solenoid_states(PLANT_LOWERED_STATES);
-            break;
+            return apply_plant_solenoid_states(PLANT_LOWERED_STATES);
     }
 }
 
-void plant_control_all_off()
+esp_err_t plant_control_all_off()
 {
-    mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOA, 0x00);
-    mcp23017_write_plant(MCP23017_1_ADDR, MCP_GPIOB, 0x00);
-    mcp23017_write_plant(MCP23017_2_ADDR, MCP_GPIOA, 0x00);
+    MCP23017OutputLock lock;
+    if (!lock.is_locked()) return ESP_ERR_INVALID_STATE;
+    return write_plant_all_off_locked();
 }
 
 const char* plant_control_get_mode_string()

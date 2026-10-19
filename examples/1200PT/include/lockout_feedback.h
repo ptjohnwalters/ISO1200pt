@@ -18,7 +18,8 @@ enum class InhibitReason : std::uint8_t
     None, // Not inhibited (fan/vac RUNNING)
     Idle, // Fan/vac not running
     FanFault,
-    VacFault
+    VacFault,
+    OutputBoardMissing
 };
 
 // Classify from the real fan/vac state and its fault flags. Fan takes
@@ -46,9 +47,20 @@ inline InhibitReason classify_inhibit(FanVacState state, bool fanFault, bool vac
     return (FanVacState::FAULT_FAN == state) ? InhibitReason::FanFault : InhibitReason::VacFault;
 }
 
+inline InhibitReason classify_inhibit(FanVacState state, bool fanFault, bool vacFault, bool outputBoardFault)
+{
+    return outputBoardFault ? InhibitReason::OutputBoardMissing :
+                              classify_inhibit(state, fanFault, vacFault);
+}
+
 inline InhibitReason classify_inhibit(const FanVacStatus &status)
 {
     return classify_inhibit(status.state, status.fanFault, status.vacFault);
+}
+
+inline InhibitReason classify_inhibit(const FanVacStatus &status, bool outputBoardFault)
+{
+    return classify_inhibit(status.state, status.fanFault, status.vacFault, outputBoardFault);
 }
 
 // Instruction text (Str_*Instruction is 240 px wide, 8 px per character).
@@ -61,6 +73,8 @@ inline const char *lockout_message(InhibitReason reason)
         case InhibitReason::FanFault:
         case InhibitReason::VacFault:
             return "LOCKED: FAN/VAC FAULT";
+        case InhibitReason::OutputBoardMissing:
+            return "LOCKED: OUTPUT BOARD MISSING";
         case InhibitReason::None:
             break;
     }
@@ -79,6 +93,8 @@ inline const char *lockout_reason_text(InhibitReason reason)
             return "REASON: FAN FAULT";
         case InhibitReason::VacFault:
             return "REASON: VAC FAULT";
+        case InhibitReason::OutputBoardMissing:
+            return "REASON: OUTPUT BOARD MISSING";
         case InhibitReason::None:
             break;
     }
@@ -96,6 +112,8 @@ inline const char *lockout_reason_log_name(InhibitReason reason)
             return "FAN FAULT";
         case InhibitReason::VacFault:
             return "VAC FAULT";
+        case InhibitReason::OutputBoardMissing:
+            return "OUTPUT BOARD MISSING";
         case InhibitReason::None:
             break;
     }
@@ -153,6 +171,13 @@ public:
             result.restoreFold = fShown;
             shownFlag[index_of(ActionGroup::Unfold)] = false;
             shownFlag[index_of(ActionGroup::Fold)] = false;
+        }
+        else if (InhibitReason::OutputBoardMissing == reason)
+        {
+            result.refreshUnfold = !uShown || result.reasonChanged;
+            result.refreshFold = !fShown || result.reasonChanged;
+            shownFlag[index_of(ActionGroup::Unfold)] = true;
+            shownFlag[index_of(ActionGroup::Fold)] = true;
         }
         else if (result.reasonChanged)
         {

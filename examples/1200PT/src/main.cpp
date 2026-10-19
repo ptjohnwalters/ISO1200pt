@@ -26,6 +26,7 @@
 #include "fold_sequence.h"
 #include "plant_control.h"
 #include "fan_vac_control.h"
+#include "mcp23017_output.h"
 
 #include <atomic>
 #include <functional>
@@ -66,6 +67,34 @@ enum class ActiveScreen
 };
 static ActiveScreen currentScreen = ActiveScreen::RUN;
 static std::atomic<bool> hydraulicActuationInhibited{true};
+static bool hardwareStartupReportPrinted = false;
+
+static bool hydraulic_actuation_inhibited()
+{
+    return hydraulicActuationInhibited.load() || mcp23017_output_health().has_fault();
+}
+
+static void log_hardware_startup_report(bool canStarted)
+{
+    if (hardwareStartupReportPrinted) return;
+    hardwareStartupReportPrinted = true;
+    ESP_LOGI("ISO1200PT", "Hardware startup report:");
+    ESP_LOGI("ISO1200PT", "MCP2515 CAN: %s; SCK=GPIO%d, MOSI=GPIO%d, MISO=GPIO%d, CS=GPIO%d, INT=GPIO%d, 250 kbit/s, 8 MHz crystal",
+             canStarted ? "STARTED" : "FAILED",
+             static_cast<int>(MCP2515_SPI_SCK), static_cast<int>(MCP2515_SPI_MOSI),
+             static_cast<int>(MCP2515_SPI_MISO), static_cast<int>(MCP2515_SPI_CS),
+             static_cast<int>(MCP2515_INT));
+    ESP_LOGI("ISO1200PT", "I2C: SDA=GPIO%d, SCL=GPIO%d, 100 kHz",
+             MCP23017_I2C_SDA_PIN, MCP23017_I2C_SCL_PIN);
+    ESP_LOGI("ISO1200PT", "MCP23017 #1 at 0x20: %s",
+             mcp23017_output_health().board_found(0) ? "FOUND" : "MISSING");
+    ESP_LOGI("ISO1200PT", "MCP23017 #2 at 0x21: %s",
+             mcp23017_output_health().board_found(1) ? "FOUND" : "MISSING");
+    ESP_LOGI("ISO1200PT", "Relay trigger polarity: active-%s (RELAY_ACTIVE_LOW=%d)",
+             RELAY_ACTIVE_LOW ? "LOW" : "HIGH", RELAY_ACTIVE_LOW);
+    ESP_LOGI("ISO1200PT", "Fan/vac pins: fan PWM=GPIO%d, vacuum PWM=GPIO%d, fan RPM=GPIO%d, vacuum pressure=GPIO%d, S-bin sensor=GPIO%d",
+             PIN_FAN_PWM, PIN_VAC_PWM, PIN_FAN_RPM_SENSOR, PIN_VAC_PRESSURE, PIN_SBIN_SENSOR);
+}
 
 // ─── UI STATE ────────────────────────────────────────────────────────────────────────
 // VT-only state: which on-screen buttons are lit. The marker model is UI only
@@ -551,7 +580,8 @@ static void restore_lockout_text(ui::ActionGroup group)
 // selected nor actuated.
 static void show_blocked_press(ui::ActionGroup group)
 {
-    const ui::InhibitReason reason = ui::classify_inhibit(fan_vac_get_status());
+    const ui::InhibitReason reason =
+        ui::classify_inhibit(fan_vac_get_status(), mcp23017_output_health().has_fault());
     bool show;
     {
         std::lock_guard<std::mutex> lock(uiMutex);
@@ -566,7 +596,8 @@ static void show_blocked_press(ui::ActionGroup group)
 // Called every main-loop iteration; logs only when the reason changes.
 static void update_lockout_feedback()
 {
-    const ui::InhibitReason reason = ui::classify_inhibit(fan_vac_get_status());
+    const ui::InhibitReason reason =
+        ui::classify_inhibit(fan_vac_get_status(), mcp23017_output_health().has_fault());
     ui::LockoutFeedback::Update update;
     {
         std::lock_guard<std::mutex> lock(uiMutex);
@@ -592,7 +623,7 @@ static void update_lockout_feedback()
 void handle_unfold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
-    if (hydraulicActuationInhibited.load())
+    if (hydraulic_actuation_inhibited())
     {
         show_blocked_press(ui::ActionGroup::Unfold);
         return;
@@ -601,13 +632,21 @@ void handle_unfold_action_button(uint8_t actionIndex)
     if (is_action_group_active(ui::ActionGroup::Fold))
     {
         reset_action_buttons();
-        fold_sequence_cancel();
+        if (ESP_OK != fold_sequence_cancel())
+        {
+            show_blocked_press(ui::ActionGroup::Unfold);
+            return;
+        }
     }
 
     if (is_action_lit(ui::ActionGroup::Unfold, actionIndex))
     {
         // Safe-stop toggle: pressing active action de-energizes it
-        fold_sequence_cancel();
+        if (ESP_OK != fold_sequence_cancel())
+        {
+            show_blocked_press(ui::ActionGroup::Unfold);
+            return;
+        }
         press_action_visual(ui::ActionGroup::Unfold, actionIndex);
         if (virtualTerminalClient != nullptr)
         {
@@ -624,7 +663,11 @@ void handle_unfold_action_button(uint8_t actionIndex)
     else
     {
         // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
-        fold_sequence_activate_unfold_action(actionIndex);
+        if (ESP_OK != fold_sequence_activate_unfold_action(actionIndex))
+        {
+            show_blocked_press(ui::ActionGroup::Unfold);
+            return;
+        }
         press_action_visual(ui::ActionGroup::Unfold, actionIndex);
 
         if (virtualTerminalClient != nullptr)
@@ -644,7 +687,7 @@ void handle_unfold_action_button(uint8_t actionIndex)
 void handle_fold_action_button(uint8_t actionIndex)
 {
     if (actionIndex < 1 || actionIndex > 6) return;
-    if (hydraulicActuationInhibited.load())
+    if (hydraulic_actuation_inhibited())
     {
         show_blocked_press(ui::ActionGroup::Fold);
         return;
@@ -653,13 +696,21 @@ void handle_fold_action_button(uint8_t actionIndex)
     if (is_action_group_active(ui::ActionGroup::Unfold))
     {
         reset_action_buttons();
-        fold_sequence_cancel();
+        if (ESP_OK != fold_sequence_cancel())
+        {
+            show_blocked_press(ui::ActionGroup::Fold);
+            return;
+        }
     }
 
     if (is_action_lit(ui::ActionGroup::Fold, actionIndex))
     {
         // Safe-stop toggle: pressing active action de-energizes it
-        fold_sequence_cancel();
+        if (ESP_OK != fold_sequence_cancel())
+        {
+            show_blocked_press(ui::ActionGroup::Fold);
+            return;
+        }
         press_action_visual(ui::ActionGroup::Fold, actionIndex);
         if (virtualTerminalClient != nullptr)
         {
@@ -676,7 +727,11 @@ void handle_fold_action_button(uint8_t actionIndex)
     else
     {
         // Activate new action (calls fold_sequence_all_off internally to guarantee mutual exclusion)
-        fold_sequence_activate_fold_action(actionIndex);
+        if (ESP_OK != fold_sequence_activate_fold_action(actionIndex))
+        {
+            show_blocked_press(ui::ActionGroup::Fold);
+            return;
+        }
         press_action_visual(ui::ActionGroup::Fold, actionIndex);
 
         if (virtualTerminalClient != nullptr)
@@ -934,15 +989,45 @@ void handle_button_event(
 
         // ── PLANT MODE BUTTONS ─────────────────────────────────────────────────
         case Button_PlantLimitedLift:
-            plant_control_set_limited_lift();
+            if (mcp23017_output_health().has_fault())
+            {
+                show_blocked_press(ui::ActionGroup::Fold);
+            }
+            else
+            {
+                if (ESP_OK != plant_control_set_limited_lift())
+                {
+                    show_blocked_press(ui::ActionGroup::Fold);
+                }
+            }
             break;
 
         case Button_PlantFullLift:
-            plant_control_set_full_lift();
+            if (mcp23017_output_health().has_fault())
+            {
+                show_blocked_press(ui::ActionGroup::Fold);
+            }
+            else
+            {
+                if (ESP_OK != plant_control_set_full_lift())
+                {
+                    show_blocked_press(ui::ActionGroup::Fold);
+                }
+            }
             break;
 
         case Button_PlantLower:
-            plant_control_set_lowered();
+            if (mcp23017_output_health().has_fault())
+            {
+                show_blocked_press(ui::ActionGroup::Fold);
+            }
+            else
+            {
+                if (ESP_OK != plant_control_set_lowered())
+                {
+                    show_blocked_press(ui::ActionGroup::Fold);
+                }
+            }
             break;
 
         // ── BULK FILL (FAN) BUTTONS ───────────────────────────────────────────
@@ -1061,6 +1146,24 @@ extern "C" void app_main()
 
     initialize_calibration_storage();
 
+    const esp_err_t outputInitResult = fold_sequence_init();
+    if (ESP_OK != outputInitResult)
+    {
+        ESP_LOGE("ISO1200PT", "MCP23017 output setup failed; hydraulic output lockout is active.");
+    }
+    gpio_config_t sBinGpioConfig = {};
+    sBinGpioConfig.pin_bit_mask = (1ULL << PIN_SBIN_SENSOR);
+    sBinGpioConfig.mode = GPIO_MODE_INPUT;
+    sBinGpioConfig.pull_up_en = GPIO_PULLUP_DISABLE;
+    sBinGpioConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    sBinGpioConfig.intr_type = GPIO_INTR_DISABLE;
+    const esp_err_t sBinGpioResult = gpio_config(&sBinGpioConfig);
+    if (ESP_OK != sBinGpioResult)
+    {
+        ESP_LOGE("ISO1200PT", "Could not configure S-bin sensor GPIO%d as an input: %s",
+                 PIN_SBIN_SENSOR, esp_err_to_name(sBinGpioResult));
+    }
+
     // ── MCP2515 SPI CAN HARDWARE SETUP ──────────────────────────────────────────
     ESP_LOGI(TAG, "Configuring MCP2515 over SPI (host=%d, SCK=%d, MOSI=%d, MISO=%d, CS=%d, INT=%d, bitrate=250000, osc=8MHz)",
               static_cast<int>(MCP2515_SPI_HOST),
@@ -1082,6 +1185,7 @@ extern "C" void app_main()
     if ((ESP_OK != spiBusInitResult) && (ESP_ERR_INVALID_STATE != spiBusInitResult))
     {
         ESP_LOGE(TAG, "Failed to initialize SPI bus: %s", esp_err_to_name(spiBusInitResult));
+        log_hardware_startup_report(false);
         return;
     }
 
@@ -1095,6 +1199,7 @@ extern "C" void app_main()
     if (ESP_OK != gpioInitResult)
     {
         ESP_LOGE(TAG, "Failed to configure MCP2515 INT pin: %s", esp_err_to_name(gpioInitResult));
+        log_hardware_startup_report(false);
         return;
     }
 
@@ -1118,6 +1223,7 @@ extern "C" void app_main()
     if (!spiInterface->init())
     {
         ESP_LOGE(TAG, "Failed to initialize SPI device for MCP2515");
+        log_hardware_startup_report(false);
         while (true)
         {
             vTaskDelay(pdMS_TO_TICKS(1000));
@@ -1146,6 +1252,7 @@ extern "C" void app_main()
     {
         ESP_LOGE(TAG, "Failed to start CAN hardware interface, the CAN driver might be invalid");
         isobus::CANHardwareInterface::stop();
+        log_hardware_startup_report(false);
         while (true)
         {
             vTaskDelay(pdMS_TO_TICKS(1000));
@@ -1154,6 +1261,7 @@ extern "C" void app_main()
     else
     {
         ESP_LOGI(TAG, "MCP2515 CAN interface started in normal mode");
+        log_hardware_startup_report(true);
     }
 
     // ── ECU IDENTITY SETUP ────────────────────────────────────────────────────
@@ -1231,7 +1339,6 @@ extern "C" void app_main()
     virtualTerminalUpdateHelper->initialize();
 
     // ── MODULE INITIALIZATION ─────────────────────────────────────────────────────
-    fold_sequence_init();   // Initialize I2C, MCP23017s, all solenoids off
     plant_control_init();   // Initialize plant mode, all solenoids off
     fan_vac_init();         // Initialize PWM, RPM sensor, ADC, PID controllers
     fan_vac_start();        // Start fan and vac control loops
@@ -1254,7 +1361,8 @@ extern "C" void app_main()
         wasVtConnected = vtConnected;
 
         fan_vac_update();
-        const bool hydraulicControlAvailable = fan_vac_get_state() == FanVacState::RUNNING;
+        const bool hydraulicControlAvailable =
+            fan_vac_get_state() == FanVacState::RUNNING && !mcp23017_output_health().has_fault();
         const bool wasActuationInhibited = hydraulicActuationInhibited.exchange(!hydraulicControlAvailable);
         if (!hydraulicControlAvailable && !wasActuationInhibited)
         {

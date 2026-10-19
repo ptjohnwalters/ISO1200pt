@@ -44,6 +44,7 @@ TEST(LockoutFeedbackTest, MessageSelection)
     EXPECT_STREQ("LOCKED: FAN/VAC FAULT", lockout_message(InhibitReason::FanFault));
     EXPECT_STREQ("LOCKED: FAN/VAC FAULT", lockout_message(InhibitReason::VacFault));
     EXPECT_STREQ("LOCKED: FAN/VAC NOT RUNNING", lockout_message(InhibitReason::Idle));
+    EXPECT_STREQ("LOCKED: OUTPUT BOARD MISSING", lockout_message(InhibitReason::OutputBoardMissing));
     EXPECT_EQ(nullptr, lockout_message(InhibitReason::None));
 }
 
@@ -51,6 +52,7 @@ TEST(LockoutFeedbackTest, ReasonTextDistinguishesFanVacAndIdle)
 {
     EXPECT_STREQ("REASON: FAN FAULT", lockout_reason_text(InhibitReason::FanFault));
     EXPECT_STREQ("REASON: VAC FAULT", lockout_reason_text(InhibitReason::VacFault));
+    EXPECT_STREQ("REASON: OUTPUT BOARD MISSING", lockout_reason_text(InhibitReason::OutputBoardMissing));
     EXPECT_STREQ("REASON: FAN/VAC IDLE", lockout_reason_text(InhibitReason::Idle));
     EXPECT_STREQ(" ", lockout_reason_text(InhibitReason::None));
 }
@@ -58,7 +60,7 @@ TEST(LockoutFeedbackTest, ReasonTextDistinguishesFanVacAndIdle)
 TEST(LockoutFeedbackTest, TextsFitTheirObjectWidths)
 {
     const InhibitReason all[] = { InhibitReason::None, InhibitReason::Idle, InhibitReason::FanFault,
-                                  InhibitReason::VacFault };
+                                  InhibitReason::VacFault, InhibitReason::OutputBoardMissing };
     for (InhibitReason reason : all)
     {
         const char *message = lockout_message(reason);
@@ -127,6 +129,17 @@ TEST(LockoutFeedbackTest, ReasonChangeWhileShownRefreshesTheText)
     EXPECT_TRUE(update.refreshFold);
     EXPECT_FALSE(update.refreshUnfold);
     EXPECT_FALSE(update.restoreFold);
+}
+
+TEST(LockoutFeedbackTest, OutputBoardFaultShowsLockoutForBothActionScreens)
+{
+    LockoutFeedback feedback;
+    const LockoutFeedback::Update update = feedback.update(InhibitReason::OutputBoardMissing);
+    EXPECT_TRUE(update.reasonChanged);
+    EXPECT_TRUE(update.refreshUnfold);
+    EXPECT_TRUE(update.refreshFold);
+    EXPECT_TRUE(feedback.shown(ActionGroup::Unfold));
+    EXPECT_TRUE(feedback.shown(ActionGroup::Fold));
 }
 
 TEST(LockoutFeedbackTest, PressWithoutInhibitShowsNothing)

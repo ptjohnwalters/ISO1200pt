@@ -50,7 +50,7 @@ class PoolSafetyTests(unittest.TestCase):
     def test_each_action_clears_outputs_before_energizing(self):
         for direction in ("fold", "unfold"):
             match = re.search(
-                rf"void fold_sequence_activate_{direction}_action\([^)]*\)\s*\{{(.*?)\n\}}",
+                rf"esp_err_t fold_sequence_activate_{direction}_action\([^)]*\)\s*\{{(.*?)\n\}}",
                 FOLD_CPP,
                 re.DOTALL,
             )
@@ -66,14 +66,14 @@ class PoolSafetyTests(unittest.TestCase):
         # display-only lockout feedback ahead of the return.
         for group in ("Unfold", "Fold"):
             self.assertIn(
-                "if (hydraulicActuationInhibited.load())\n"
+                "if (hydraulic_actuation_inhibited())\n"
                 "    {\n"
                 f"        show_blocked_press(ui::ActionGroup::{group});\n"
                 "        return;\n"
                 "    }\n",
                 MAIN_CPP,
             )
-        self.assertEqual(MAIN_CPP.count("hydraulicActuationInhibited.load()"), 2)
+        self.assertEqual(MAIN_CPP.count("if (hydraulic_actuation_inhibited())"), 2)
         self.assertIn(
             "hydraulicActuationInhibited.exchange(!hydraulicControlAvailable)",
             MAIN_CPP,
@@ -212,8 +212,9 @@ class PoolSafetyTests(unittest.TestCase):
             Direction = direction.capitalize()
             body = MAIN_CPP.split(f"void handle_{direction}_action_button(uint8_t actionIndex)\n{{\n", 1)[1].split("\n}\n", 1)[0]
             self.assertLess(
-                body.index(f"fold_sequence_activate_{direction}_action(actionIndex);"),
-                body.index(f"press_action_visual(ui::ActionGroup::{Direction}, actionIndex);", body.index(f"fold_sequence_activate_{direction}_action")),
+                body.index(f"fold_sequence_activate_{direction}_action(actionIndex)"),
+                body.index(f"press_action_visual(ui::ActionGroup::{Direction}, actionIndex);",
+                           body.index(f"fold_sequence_activate_{direction}_action")),
             )
 
 
