@@ -63,6 +63,7 @@ set(TEST_SRC
     tc_server_tests.cpp
     calibration_settings_tests.cpp
     ui_state_tests.cpp
+    lockout_feedback_tests.cpp
     helpers/test_time_source.cpp
     helpers/control_function_helpers.cpp
     helpers/messaging_helpers.cpp)

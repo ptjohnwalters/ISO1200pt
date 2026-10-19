@@ -179,6 +179,8 @@
 // ─── VARIABLE STRINGS (Dynamic Text) ─────────────────────────────────────────
 #define VarStr_FoldInstruction       22000  // Current fold step instruction text
 #define VarStr_UnfoldInstruction     22001  // Current unfold step instruction text
+#define VarStr_FoldLockReason        22003  // FOLD lockout reason (fan fault / vac fault / idle)
+#define VarStr_UnfoldLockReason      22004  // UNFOLD lockout reason (fan fault / vac fault / idle)
 #define VarStr_PlantStatus           22002  // Current plant mode status
 #define VarStr_MarkerStatus          22010  // "MARKER" (static label of the AUTO button)
 #define VarStr_MarkerDetail          22011  // "OFF", "LEFT", "RIGHT", "LEFT + RIGHT", "AUTO"

@@ -22,8 +22,12 @@ RUNTIME_STRINGS = {
     "Str_CalFaultMessage": ["STATUS: OK - NO ACTIVE FAULTS", "CALIBRATION SAVE FAILED",
                             "START PLANT MUST BE >= STOP PLANT", "STOP PLANT MUST BE <= START PLANT"],
     "Str_MarkerDetail": ["OFF", "LEFT", "RIGHT", "LEFT + RIGHT", "AUTO"],
-    "Str_FoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE"],
-    "Str_UnfoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE"],
+    "Str_FoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE",
+                            "LOCKED: FAN/VAC FAULT", "LOCKED: FAN/VAC NOT RUNNING"],
+    "Str_UnfoldInstruction": ["SEQUENCE COMPLETE", "SELECT FOLD OR UNFOLD", "HYDRAULICS SAFE - IDLE",
+                              "LOCKED: FAN/VAC FAULT", "LOCKED: FAN/VAC NOT RUNNING"],
+    "Str_FoldLockReason": [" ", "REASON: FAN/VAC IDLE", "REASON: FAN FAULT", "REASON: VAC FAULT"],
+    "Str_UnfoldLockReason": [" ", "REASON: FAN/VAC IDLE", "REASON: FAN FAULT", "REASON: VAC FAULT"],
     "Str_CalBulkHeadland": ["ON", "OFF"],
 }
 

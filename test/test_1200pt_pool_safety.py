@@ -62,7 +62,18 @@ class PoolSafetyTests(unittest.TestCase):
             )
 
     def test_fault_or_startup_inhibits_and_cancels_hydraulic_actions(self):
-        self.assertEqual(MAIN_CPP.count("if (hydraulicActuationInhibited.load()) return;"), 2)
+        # The interlock still returns before anything actuates; the only addition is
+        # display-only lockout feedback ahead of the return.
+        for group in ("Unfold", "Fold"):
+            self.assertIn(
+                "if (hydraulicActuationInhibited.load())\n"
+                "    {\n"
+                f"        show_blocked_press(ui::ActionGroup::{group});\n"
+                "        return;\n"
+                "    }\n",
+                MAIN_CPP,
+            )
+        self.assertEqual(MAIN_CPP.count("hydraulicActuationInhibited.load()"), 2)
         self.assertIn(
             "hydraulicActuationInhibited.exchange(!hydraulicControlAvailable)",
             MAIN_CPP,
