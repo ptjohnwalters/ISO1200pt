@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <array>
+#include "esp_err.h"
 
 // ─── SOLENOID PIN DEFINITIONS ────────────────────────────────────────────────
 // These map solenoid tag numbers to MCP23017 output pins
@@ -75,7 +76,7 @@ enum class SequenceState
 // ─── FUNCTION DECLARATIONS ───────────────────────────────────────────────────
 
 // Initialize fold sequence module
-void fold_sequence_init();
+esp_err_t fold_sequence_init();
 
 // Get current sequence state
 SequenceState fold_sequence_get_state();
@@ -84,10 +85,10 @@ SequenceState fold_sequence_get_state();
 uint8_t fold_sequence_get_current_step();
 
 // Start fold sequence from step 1
-void fold_sequence_start_fold();
+esp_err_t fold_sequence_start_fold();
 
 // Start unfold sequence from step 1
-void fold_sequence_start_unfold();
+esp_err_t fold_sequence_start_unfold();
 
 // Advance to next step - called when operator presses NEXT
 // Returns true if sequence is complete
@@ -98,22 +99,22 @@ bool fold_sequence_next_step();
 bool fold_sequence_prev_step();
 
 // Cancel current sequence and de-energize all solenoids
-void fold_sequence_cancel();
+esp_err_t fold_sequence_cancel();
 
 // Apply solenoid states for current step
-void fold_sequence_apply_current_step();
+esp_err_t fold_sequence_apply_current_step();
 
 // Activate a specific fold action (1-based: 1..6). De-energizes all outputs before applying states.
-void fold_sequence_activate_fold_action(uint8_t actionIndex);
+esp_err_t fold_sequence_activate_fold_action(uint8_t actionIndex);
 
 // Activate a specific unfold action (1-based: 1..6). De-energizes all outputs before applying states.
-void fold_sequence_activate_unfold_action(uint8_t actionIndex);
+esp_err_t fold_sequence_activate_unfold_action(uint8_t actionIndex);
 
 // Get active action number (0 = none, 1..6 = active action)
 uint8_t fold_sequence_get_active_action();
 
 // De-energize all solenoids immediately
-void fold_sequence_all_off();
+esp_err_t fold_sequence_all_off();
 
 // Get instruction text for current step
 const char* fold_sequence_get_instruction();

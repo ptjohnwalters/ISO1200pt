@@ -64,6 +64,7 @@ set(TEST_SRC
     calibration_settings_tests.cpp
     ui_state_tests.cpp
     lockout_feedback_tests.cpp
+    mcp23017_output_safety_tests.cpp
     helpers/test_time_source.cpp
     helpers/control_function_helpers.cpp
     helpers/messaging_helpers.cpp)

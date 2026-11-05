@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <array>
+#include "esp_err.h"
 
 // ─── PLANT MODE DEFINITIONS ──────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ struct PlantStatus
 // ─── FUNCTION DECLARATIONS ───────────────────────────────────────────────────
 
 // Initialize plant control module
-void plant_control_init();
+esp_err_t plant_control_init();
 
 // Get current plant mode
 PlantMode plant_control_get_mode();
@@ -55,23 +56,23 @@ PlantMode plant_control_get_mode();
 PlantStatus plant_control_get_status();
 
 // Activate limited lift mode
-void plant_control_set_limited_lift();
+esp_err_t plant_control_set_limited_lift();
 
 // Activate full lift mode
-void plant_control_set_full_lift();
+esp_err_t plant_control_set_full_lift();
 
 // Lower planter to ground position
-void plant_control_set_lowered();
+esp_err_t plant_control_set_lowered();
 
 // Update S bin sensor status
 // Called from sensor reading loop
 void plant_control_update_sbin(bool isEmpty);
 
 // Apply solenoid states for current plant mode
-void plant_control_apply_current_mode();
+esp_err_t plant_control_apply_current_mode();
 
 // De-energize all solenoids immediately
-void plant_control_all_off();
+esp_err_t plant_control_all_off();
 
 // Get status text for display on InCommand
 const char* plant_control_get_mode_string();
