@@ -87,6 +87,25 @@ def output_objects_in_masks():
 
 
 class VtLayoutTests(unittest.TestCase):
+    def test_working_set_designator_is_present_and_fits(self):
+        working_set = OBJECTS["WorkingSet_1200PT"]
+        designator = OBJECTS["WS_Designator"]
+        self.assertRegex(POOL_HEADER, r"#define WS_Designator\s+11900")
+        self.assertEqual(working_set.get("id"), "0")
+        self.assertEqual(
+            [(child.get("id"), child.get("name"), child.get("x"), child.get("y"))
+             for child in working_set if child.tag == "include_object"],
+            [("11900", "WS_Designator", "0", "0")],
+        )
+        self.assertEqual(
+            (designator.get("id"), designator.get("value"), designator.get("background_colour"),
+             designator.get("font_attributes"), designator.get("width"), designator.get("height")),
+            ("11900", "PT", "green", "FontMedium_White", "60", "32"),
+        )
+        char_width, char_height = preview.font_cell(FONTS[designator.get("font_attributes")])
+        self.assertLessEqual(len(designator.get("value")) * char_width, int(designator.get("width")))
+        self.assertLessEqual(char_height, int(designator.get("height")))
+
     def test_fit_fonts_exist_with_specified_ids(self):
         for name, (font_id, size, colour) in NEW_FONTS.items():
             font = FONTS[name]
