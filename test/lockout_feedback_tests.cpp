@@ -66,21 +66,24 @@ TEST(LockoutFeedbackTest, NothingShownUntilAPressIsBlocked)
     EXPECT_FALSE(update.restoreUnfold || update.restoreFold);
 }
 
-TEST(LockoutFeedbackTest, BlockedPressShowsOnlyThatScreenAndClearsWhenInhibitEnds)
+TEST(LockoutFeedbackTest, BlockedPressShowsThatScreenThenFaultUpdatesBothScreens)
 {
     LockoutFeedback feedback;
-    feedback.update(InhibitReason::OutputBoardMissing);
     EXPECT_TRUE(feedback.on_blocked_press(ActionGroup::Unfold, InhibitReason::OutputBoardMissing));
     EXPECT_TRUE(feedback.shown(ActionGroup::Unfold));
     EXPECT_FALSE(feedback.shown(ActionGroup::Fold));
 
     LockoutFeedback::Update update = feedback.update(InhibitReason::OutputBoardMissing);
-    EXPECT_FALSE(update.restoreUnfold);
+    EXPECT_TRUE(update.refreshUnfold);
+    EXPECT_TRUE(update.refreshFold);
+    EXPECT_TRUE(feedback.shown(ActionGroup::Unfold));
+    EXPECT_TRUE(feedback.shown(ActionGroup::Fold));
 
     update = feedback.update(InhibitReason::None);
     EXPECT_TRUE(update.restoreUnfold);
-    EXPECT_FALSE(update.restoreFold);
+    EXPECT_TRUE(update.restoreFold);
     EXPECT_FALSE(feedback.shown(ActionGroup::Unfold));
+    EXPECT_FALSE(feedback.shown(ActionGroup::Fold));
 
     // The restore is reported once only
     update = feedback.update(InhibitReason::None);
