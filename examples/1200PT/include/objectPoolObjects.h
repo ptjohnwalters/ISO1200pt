@@ -5,6 +5,7 @@
 
 // Working Set
 #define WorkingSet_1200PT            0      // Root working set object
+#define WS_Designator                11900
 
 // ─── DATA MASKS (Screens) ────────────────────────────────────────────────────
 #define DataMask_Run                 1000   // RUN screen - main implement control

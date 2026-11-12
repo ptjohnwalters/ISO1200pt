@@ -4,7 +4,9 @@
        WORKING SET - Root ECU Identity Object
        ID: 0
   ═══════════════════════════════════════════════════════════ -->
-  <workingset active_mask="DataMask_Run" background_colour="silver" id="0" name="WorkingSet_1200PT" selectable="yes"/>
+  <workingset active_mask="DataMask_Run" background_colour="silver" id="0" name="WorkingSet_1200PT" selectable="yes">
+    <include_object id="11900" name="WS_Designator" role="" x="0" y="0"/>
+  </workingset>
 
   <!-- ═══════════════════════════════════════════════════════════
        SOFT KEY MASKS
@@ -250,6 +252,7 @@
   <outputstring background_colour="silver" font_attributes="BtnFont_FanOff" height="32" horizontal_justification="centred" id="11070" language="" length="4" name="Label_BtnFanPowerOff" options="" value="OFF" vertical_justification="middle" width="102" x="0" y="0"/>
   <outputstring background_colour="silver" font_attributes="BtnFont_MarkerRight" height="42" horizontal_justification="centred" id="11034" language="" length="6" name="Label_BtnNext" options="" value="&gt;" vertical_justification="middle" width="80" x="0" y="0"/>
   <outputstring background_colour="silver" font_attributes="BtnFont_MarkerLeft" height="42" horizontal_justification="centred" id="11035" language="" length="6" name="Label_BtnPrev" options="" value="&lt;" vertical_justification="middle" width="80" x="0" y="0"/>
+  <outputstring background_colour="green" font_attributes="FontMedium_White" height="32" horizontal_justification="centred" id="11900" language="" length="2" name="WS_Designator" options="" value="PT" vertical_justification="middle" width="60" x="0" y="0"/>
   <outputstring background_colour="red" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11036" language="" length="8" name="Label_BtnCancel" options="" value="CANCEL" vertical_justification="middle" width="110" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="FontMedium_White" height="65" horizontal_justification="centred" id="11037" language="" length="10" name="Label_BtnNextStep" options="" value="NEXT STEP" vertical_justification="middle" width="190" x="0" y="0"/>
   <outputstring background_colour="green" font_attributes="Fit12x16_white" height="30" horizontal_justification="centred" id="11038" language="" length="4" name="Label_BtnSetFullRaise" options="" value="SET" vertical_justification="middle" width="110" x="0" y="0"/>
