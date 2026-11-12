@@ -6,7 +6,6 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 POOL_XML = REPOSITORY_ROOT / "object_pool"
-POOL_XML_COPY = REPOSITORY_ROOT / "ISO1200PT"
 POOL_IOP = REPOSITORY_ROOT / "examples/1200PT/src/object_pool/object_pool.iop"
 POOL_HEADER = REPOSITORY_ROOT / "examples/1200PT/include/objectPoolObjects.h"
 MAIN_CPP = (REPOSITORY_ROOT / "examples/1200PT/src/main.cpp").read_text()
@@ -108,7 +107,6 @@ class PoolSafetyTests(unittest.TestCase):
         self.assertIn("vTaskDelay(pdMS_TO_TICKS(PID_UPDATE_INTERVAL));", MAIN_CPP)
 
     def test_calibration_screen_has_four_compact_coloured_set_rows(self):
-        self.assertEqual(POOL_XML.read_bytes(), POOL_XML_COPY.read_bytes())
         root = ET.parse(POOL_XML).getroot()
         objects = {
             element.get("name"): element

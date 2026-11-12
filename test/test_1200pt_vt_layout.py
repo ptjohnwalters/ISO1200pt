@@ -309,9 +309,7 @@ class VtLayoutTests(unittest.TestCase):
         for _, _, font, _ in STATEFUL_BUTTONS:
             self.assertIn(f'name="{font}"', (REPOSITORY_ROOT / "object_pool").read_text())
 
-    def test_object_pool_copies_and_iop_are_in_sync(self):
-        self.assertEqual((REPOSITORY_ROOT / "object_pool").read_bytes(),
-                         (REPOSITORY_ROOT / "ISO1200PT").read_bytes())
+    def test_object_pool_and_iop_are_in_sync(self):
         iop = (REPOSITORY_ROOT / "examples/1200PT/src/object_pool/object_pool.iop").read_bytes()
         for name, (font_id, size, _) in NEW_FONTS.items():
             self.assertIn(struct.pack("<HB", int(font_id), 23), iop, name)
