@@ -1,78 +1,89 @@
-<div align="center">
+# ISO1200PT Planter Controller
 
-# AgIsoStack++ 🚜
+ISO1200PT is an ESP32-based controller for a Case IH 1200PT planter. It
+provides an ISOBUS Virtual Terminal interface for planter controls, calibration,
+fold/unfold sequences, fan and vacuum settings, and status information. The
+firmware uses an MCP2515 CAN interface, MCP23017 output boards, relay boards,
+and the sensors and PWM outputs described in the wiring guide.
 
-— <ins>**Ag**</ins>riculture <ins>**ISO**</ins>-11783 <ins>**stack**</ins> for C<ins>**++**</ins>
+> [!CAUTION]
+> ## SAFETY
+>
+> The controller outputs switch hydraulic solenoids. This firmware has **not
+> been proven on a machine**. Test the relay boards and solenoids on a bench
+> first, without hydraulic pressure. Depressurize the hydraulic system before
+> connecting or disconnecting wiring. Never rely on the VT buttons or this
+> controller as a safety device; use the machine's independent safety systems.
 
-*The completely free open-source ISOBUS library for everyone - from hobbyists to industry!*
+## Hardware and wiring
 
-[Documentation & Tutorials](https://agisostack-plus-plus.readthedocs.io/en/latest/index.html) | [Issues & Suggestions](https://github.com/Open-Agriculture/AgIsoStack-plus-plus/issues) | [Discussions](https://github.com/Open-Agriculture/AgIsoStack-plus-plus/discussions) | [Discord](https://discord.gg/uU2XMVUD4b) | [Telegram](https://t.me/+kzd4-9Je5bo1ZDg6)
+See the [WIRING_GUIDE.md](WIRING_GUIDE.md) for pin assignments, CAN and I2C
+wiring, MCP23017 addresses, relay polarity, solenoid channel mapping, sensor
+connections, and staged bring-up checks. Verify all wiring and output mappings
+against the machine schematic before connecting loads.
 
-[![Last Commit](https://img.shields.io/github/last-commit/Open-Agriculture/AgIsoStack-plus-plus)](https://github.com/Open-Agriculture/AgIsoStack-plus-plus/commits/main)
-[![License](https://img.shields.io/github/license/Open-Agriculture/AgIsoStack-plus-plus)](https://github.com/Open-Agriculture/AgIsoStack-plus-plus/blob/main/LICENSE)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ad3154_ISO11783-CAN-Stack&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ad3154_ISO11783-CAN-Stack)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ad3154_ISO11783-CAN-Stack&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ad3154_ISO11783-CAN-Stack)
+## Build, flash, and monitor
 
-</div>
+Install [PlatformIO Core](https://platformio.org/install/cli) and connect the
+ESP32 development board over USB. From the repository root, build either
+configuration:
 
-![AgIsoStack++Logo](docs/images/wideLogoTransparent.png)
+```bash
+pio run -d examples/1200PT -e esp32dev
+pio run -d examples/1200PT -e esp32dev_debug
+```
 
-![Features](docs/images/features.png)
+Upload to the connected board (add `--upload-port PORT` if PlatformIO does not
+select the port automatically):
 
-![TaskController](docs/images/taskController.png)
+```bash
+pio run -d examples/1200PT -e esp32dev --target upload
+```
 
-> AgIsoStack++ simplifies implementing ISOBUS functionalities by providing a transparent and well-documented library. This allows you to concentrate on your application, without getting bogged down in rules defined by standards and guidelines.
+Open the serial monitor at 115200 baud:
 
-- [Features](#features)
-- [In Detail](#in-detail)
-- [Getting Started](#getting-started)
-- [Roadmap](#roadmap)
-- [Community](#community)
+```bash
+pio run -d examples/1200PT -e esp32dev --target monitor
+```
 
-## Features
+## Object pool
 
-- Platform independent C++ library
-- Virtual Terminal Client (Universal Terminal)
-- Auxiliary control (AUX-N)
-- Task Controller Client and Server
-- ISOBUS shortcut button (ISB)
-- The complete backbone of the ISO11783 standard
-- NMEA 2000 Fast Packet Protocol
-- Common guidance and speed messages
-- [Hardware drivers for many common CAN controllers](https://isobus-plus-plus.readthedocs.io/en/latest/api/hardware/index.html#choosing-a-can-driver-with-cmake)
+`object_pool` is the source XML for the VT object pool. After editing it,
+regenerate the embedded binary with:
 
-## In Detail
+```bash
+python3 generate_iop.py
+```
 
-ISOBUS (based on the ISO-11783 standard) defines how agricultural machinery should communicate with each other on a CANbus network. Cross compatibility is achieved when different manufacturers carefully follow this standard when developing their devices. This means that a tractor from one manufacturer can communicate with an implement from another manufacturer, and vice versa.
+Commit the regenerated `examples/1200PT/src/object_pool/object_pool.iop` with
+any pool changes.
 
-AgIsoStack++ provides an easy-to-use interface for your application to communicate on the ISOBUS network in a compliant manner, without the need to worry about the details of the standard.
-The library is is written in modern C++11 and uses the STL whenever possible. It is designed to be easy to understand is fully documented.
+## Tests
 
-## Getting Started
+Run the Python pool and firmware-safety checks:
 
-Check out the [tutorial website](https://agisostack-plus-plus.readthedocs.io/en/latest/) for information on ISOBUS basics, how to download this library, and how to use it. The tutorials contain in-depth examples and explanations to help get your ISOBUS or J1939 project going quickly.
+```bash
+python -m unittest discover -s test -p "test_1200pt_*.py"
+```
 
-### Use of our SAE/ISOBUS Manufacturer Code
+Build and run all standalone C++ unit tests (CMake fetches GoogleTest v1.17.0):
 
-If you are integrating with our library to create an ISO11783 or J1939 application and are not selling your software or device containing that software for-profit, then you are welcome to use our manufacturer number in your application.
+```bash
+cmake -S test -B build
+cmake --build build
+ctest --test-dir build
+```
 
-If you are creating such an application for sale as a for-profit company, then we ask that you please obtain your own manufacturer code from SAE instead of using ours.
+## AgIsoStack++ dependency
 
-Our manufacturer code is 1407 (decimal).
+PlatformIO uses
+[AgIsoStack++](https://github.com/Open-Agriculture/AgIsoStack-plus-plus) at
+commit [`5ff90cbe7812ae53e90ecdcf52b016afb52bfa45`](https://github.com/Open-Agriculture/AgIsoStack-plus-plus/commit/5ff90cbe7812ae53e90ecdcf52b016afb52bfa45),
+the merge commit of upstream PR #855. The exact commit is pinned so library
+updates do not silently change firmware builds. It includes the worker
+identification fix required when this firmware initializes its Virtual Terminal
+client from ESP-IDF's `app_main`.
 
-## Roadmap
-
-![RoadMap](docs/images/comingSoon.png)
-
-## Community
-
-Join us on [Discord](https://discord.gg/uU2XMVUD4b) for support, to share your project, and good vibes in general! Alternatively, you can also join us on [Telegram](https://t.me/+kzd4-9Je5bo1ZDg6).
-
-## Special Thanks
-
-This project's sponsors are a big part of making this project successful. Their support helps fund new hardware and software tools to test against, which drives up quality.
-
-Thank you:
-
-- Franz Höpfinger [franz-ms-muc](https://github.com/franz-ms-muc)
-- Balázs Gunics [gunicsba](https://github.com/gunicsba)
+The firmware configuration in `examples/1200PT/sdkconfig.defaults` must keep
+`CONFIG_FREERTOS_HZ=1000`. Do not lower it: the 1 ms FreeRTOS tick is needed so
+short sleeps yield correctly under ESP-IDF 5.0.2.
