@@ -54,7 +54,9 @@ Makefile
 !docs/vt_preview/*.png
 
 # PlatformIO
-.pio
+.pio/
+examples/1200PT/CMakeLists.txt
+examples/1200PT/sdkconfig.esp32dev
 
 # QtCreator cmake temp files
 CMakeLists.txt.user*
@@ -67,4 +69,3 @@ CMakeFiles
 
 *.orig
 *.rej
-
