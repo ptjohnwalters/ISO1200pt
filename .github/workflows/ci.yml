@@ -1,0 +1,41 @@
+name: 1200PT CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v5
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('examples/1200PT/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install platformio "setuptools<81"
+
+      - name: Build firmware
+        run: |
+          pio run -d examples/1200PT -e esp32dev
+          pio run -d examples/1200PT -e esp32dev_debug
+
+      - name: Run Python tests
+        run: python -m unittest discover -s test -p "test_1200pt_*.py"
+
+      - name: Verify generated object pool
+        run: |
+          python3 generate_iop.py
+          git diff --exit-code -- examples/1200PT/src/object_pool/object_pool.iop
